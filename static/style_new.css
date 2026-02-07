@@ -1,0 +1,450 @@
+/* Base Page Styling */
+body {
+    font-family: 'Poppins', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f2f5;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Fantastic Header Styling */
+.main-header {
+    position: relative;
+    padding: 30px 0;
+    text-align: center;
+    margin-bottom: 40px;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.8) 0%, rgba(240,242,245,0) 70%);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.main-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #3498db, #9b59b6, #2ecc71);
+    border-radius: 5px 5px 0 0;
+}
+
+h1 {
+    font-size: 4rem !important;
+    font-weight: 700 !important;
+    margin: 10px 0 !important;
+    background: linear-gradient(120deg, #3498db, #9b59b6, #2ecc71);
+    background-clip: text !important;
+    -webkit-background-clip: text !important;
+    color: transparent !important;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.1) !important;
+    letter-spacing: -1px !important;
+    animation: headerGlow 3s infinite alternate !important;
+}
+
+@keyframes headerGlow {
+    0% {
+        text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(155, 89, 182, 0.5);
+    }
+    100% {
+        text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+    }
+}
+
+.header-accent {
+    width: 180px;
+    height: 4px;
+    background: linear-gradient(90deg, #3498db, #9b59b6);
+    margin: 10px auto 5px;
+    border-radius: 2px;
+    position: relative;
+    transition: width 0.3s ease;
+}
+
+.header-accent::before, .header-accent::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #9b59b6;
+    border-radius: 50%;
+    top: -2px;
+    animation: accentPulse 2s infinite alternate;
+}
+
+.header-accent::before {
+    left: 0;
+    animation-delay: 0s;
+}
+
+.header-accent::after {
+    right: 0;
+    animation-delay: 1s;
+}
+
+@keyframes accentPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 4px rgba(155, 89, 182, 0.6);
+    }
+    100% {
+        transform: scale(1.5);
+        box-shadow: 0 0 10px rgba(155, 89, 182, 0.9);
+    }
+}
+
+.main-header:hover .header-accent {
+    width: 250px;
+}
+
+/* Section headers styling */
+section {
+    margin-bottom: 30px;
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+section h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    position: relative;
+    border-bottom: 1px solid #eaeaea;
+}
+
+section h2::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #3498db, #9b59b6);
+    border-radius: 3px;
+}
+
+/* Forms */
+form {
+    margin-bottom: 20px;
+}
+
+input, select, button {
+    padding: 8px 12px;
+    margin: 5px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #9b59b6;
+    box-shadow: 0 0 0 2px rgba(155,89,182,0.2);
+}
+
+/* Chore Grid Section */
+#chore-list {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* One full grid per user */
+.user-section {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px 20px 20px 20px;
+    margin-top: 0;
+    margin-bottom: 30px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+    border: none;
+}
+
+/* Header with username and delete */
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 10px 0 10px;
+}
+
+.user-name {
+    font-size: 52px;
+    font-weight: 700;
+    text-align: left;
+    color: #333;
+    position: relative;
+    animation: namePulse 6s infinite ease-in-out;
+    padding: 10px 0;
+}
+
+@keyframes namePulse {
+    0%, 100% {
+        text-shadow: 0 0 6px rgba(100, 100, 255, 0.3);
+    }
+    50% {
+        text-shadow: 0 0 12px rgba(100, 100, 255, 0.5);
+    }
+}
+
+.delete-user {
+    padding: 6px 12px;
+    font-size: 12px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.delete-user:hover {
+    background-color: #f5c6cb;
+}
+
+/* Days of the week header row */
+.days-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 4px;
+    text-align: center;
+}
+
+/* Row with each day's chores */
+.user-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* One column for a day */
+.day-col {
+    min-height: 80px;
+    border-left: 1px solid #eee;
+    padding: 4px;
+    overflow-x: hidden;
+    position: relative;
+}
+
+.chore-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+.chore-status, .chore-rotation {
+    font-size: 13px;
+    margin: 2px 0;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.chore-item button {
+    font-size: 12px;
+    margin-right: 4px;
+    margin-top: 5px;
+}
+
+.chore-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.chore-buttons .top-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.chore-buttons .top-row button {
+    flex: 1;
+    padding: 4px 6px;
+    font-size: 12px;
+    height: 30px;
+}
+
+/* Keep this as-is — defines base style */
+.primary-btn {
+    background: linear-gradient(135deg, #4CAF50, #43A047);
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    width: 100%;
+    height: 50px;
+    font-size: 16px !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+}
+
+/* Overrides background only */
+.primary-btn.undo-btn {
+    background: linear-gradient(135deg, #f88379, #f06565);
+}
+
+.primary-btn.undo-btn:hover {
+    background: linear-gradient(135deg, #f06565, #ec5d5d);
+}
+
+.primary-btn:hover {
+    background: linear-gradient(135deg, #45A049, #388E3C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.primary-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Make "Delete" button slightly red */
+.delete-btn {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.delete-btn:hover {
+    background-color: #f5c6cb;
+}
+
+/* Keep "Edit" neutral */
+.edit-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* Chore card styling */
+.chore-item {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    margin-bottom: 8px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background-color 0.4s ease, transform 0.2s ease;
+    overflow: visible;
+}
+
+@keyframes popBig {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes popSmall {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.pop-big {
+    animation: popBig 0.2s ease;
+}
+
+.pop-small {
+    animation: popSmall 0.2s ease;
+}
+
+.rotation-user {
+    background-color: #e0f7fa;
+    padding: 12px 20px;
+    margin: 6px 0;
+    border-radius: 999px;
+    border: 1px solid #b2ebf2;
+    cursor: grab;
+    user-select: none;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    display: inline-block;
+    font-size: 18px;
+    -webkit-user-drag: none;
+    touch-action: manipulation;
+}
+
+.rotation-user:hover {
+    background-color: #b2ebf2;
+    transform: scale(1.02);
+}
+
+.rotation-user.pinned {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    font-weight: bold;
+    cursor: default;
+}
+
+.cursor-grab {
+    cursor: grab;
+}
+
+.cursor-grabbing {
+    cursor: grabbing;
+}
+
+/* Highlight rotating chores */
+.chore-item.rotating {
+    background-color: #fff9c4;
+    border: 1px solid #fbc02d;
+}
+
+.rotation-display div {
+    margin-bottom: 2px;
+}
+
+.rotation-display {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #856404;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+}
+
+/* Completed chore card */
+.chore-item.completed {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+#reset-week-btn {
+    background: #607D8B;
+    color: #fff;
+    padding: 6px 16px;
+    font-size: 14px !important;
+    width: auto;
+    height: auto;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#reset-week-btn:hover {
+    background: #546E7A;
+} 
