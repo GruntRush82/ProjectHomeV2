@@ -437,6 +437,10 @@ def send_grocery():
     msg.set_content("\n".join(lines))
     _send_email(msg)
 
+    # Clear the list after sending
+    GroceryItem.query.delete()
+    db.session.commit()
+
     return jsonify({"message": f"Grocery list sent to {recipient}"}), 200
 
 if __name__ == '__main__':

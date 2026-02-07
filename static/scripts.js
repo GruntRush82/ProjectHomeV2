@@ -422,6 +422,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(res => res.json())
         .then(data => {
             alert(data.message || data.error);
+            loadGrocery();
         });
     });
 
