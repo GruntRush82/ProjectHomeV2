@@ -27,7 +27,7 @@ scheduler.api_enabled = True
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    chores = db.relationship('Chore', backref='user', lazy=True)
+    chores = db.relationship('Chore', backref='user', lazy=True, foreign_keys='Chore.user_id')
 
 class Chore(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,6 +37,7 @@ class Chore(db.Model):
     day = db.Column(db.String(100), nullable=False, default = 'Monday')
     rotation_type = db.Column(db.String(10), nullable=False, default = "static")
     rotation_order = db.Column(JSON, nullable=True)
+    base_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 class ChoreHistory(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -48,6 +49,12 @@ class ChoreHistory(db.Model):
     rotation_type = db.Column(db.String(10), nullable=False)
 
     chore = db.relationship('Chore', backref='history')
+
+class GroceryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    item_name = db.Column(db.String(200), nullable=False)
+    added_by = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 @scheduler.task('cron', id='weekly_archive',day_of_week='mon', hour=0, minute=0, misfire_grace_time=60, coalesce = True, max_instances= 1)
@@ -90,14 +97,19 @@ def rotate_chores_once():
         order = chore.rotation_order or []
         if not order:
             continue
+        # Use base_user_id (rotation anchor) to determine position
+        anchor_id = chore.base_user_id or chore.user_id
+        anchor_user = User.query.get(anchor_id)
+        if not anchor_user:
+            continue
         try:
-            curr = chore.user.username
-            nxt = order[(order.index(curr) + 1) % len(order)]
+            nxt = order[(order.index(anchor_user.username) + 1) % len(order)]
         except ValueError:
-            continue  # current user not in list
+            continue  # anchor user not in list
         next_user = User.query.filter_by(username=nxt).first()
         if next_user:
             chore.user_id = next_user.id
+            chore.base_user_id = next_user.id
 
 
 # Start the scheduler
@@ -156,11 +168,12 @@ def add_chore():
 
 
     new_chore = Chore(
-        description=description, 
+        description=description,
         user_id=user_id,
         day=day,
         rotation_type=rotation_type.lower(),
-        rotation_order=rotation_order
+        rotation_order=rotation_order,
+        base_user_id=user_id if rotation_type.lower() == "rotating" else None
         )
     db.session.add(new_chore)
     db.session.commit()
@@ -326,6 +339,105 @@ def manual_weekly_reset():
         "reports_sent": send_flag,
         "date": str(date.today())
     }), 200
+
+@app.route('/chores/<int:id>/move', methods=['PUT'])
+def move_chore(id):
+    chore = Chore.query.get_or_404(id)
+    data = request.get_json()
+    new_user_id = data.get('user_id')
+    new_day = data.get('day')
+
+    VALID_DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+
+    if new_day and new_day not in VALID_DAYS:
+        return jsonify({"error": "Invalid day provided"}), 400
+
+    if new_user_id is not None:
+        user = User.query.get(new_user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        chore.user_id = new_user_id
+        # For rotating chores, do NOT update base_user_id on drag
+    if new_day:
+        chore.day = new_day
+
+    db.session.commit()
+    return jsonify({
+        "id": chore.id,
+        "description": chore.description,
+        "user_id": chore.user_id,
+        "username": chore.user.username,
+        "day": chore.day
+    }), 200
+
+# ---- Grocery List Endpoints ----
+
+@app.route('/grocery', methods=['GET'])
+def get_grocery():
+    items = GroceryItem.query.order_by(GroceryItem.created_at).all()
+    return jsonify([
+        {"id": i.id, "item_name": i.item_name, "added_by": i.added_by,
+         "created_at": i.created_at.isoformat() if i.created_at else None}
+        for i in items
+    ])
+
+@app.route('/grocery', methods=['POST'])
+def add_grocery():
+    data = request.get_json()
+    item_name = data.get('item_name', '').strip()
+    added_by = data.get('added_by', '').strip()
+    if not item_name or not added_by:
+        return jsonify({"error": "item_name and added_by are required"}), 400
+    item = GroceryItem(item_name=item_name, added_by=added_by)
+    db.session.add(item)
+    db.session.commit()
+    return jsonify({"id": item.id, "item_name": item.item_name, "added_by": item.added_by}), 201
+
+@app.route('/grocery/<int:id>', methods=['DELETE'])
+def delete_grocery(id):
+    item = GroceryItem.query.get_or_404(id)
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({"message": "Item deleted"}), 200
+
+@app.route('/grocery/clear', methods=['DELETE'])
+def clear_grocery():
+    GroceryItem.query.delete()
+    db.session.commit()
+    return jsonify({"message": "Grocery list cleared"}), 200
+
+@app.route('/grocery/send', methods=['POST'])
+def send_grocery():
+    from reporting import _send_email, _load_config
+    from email.message import EmailMessage
+
+    data = request.get_json()
+    recipient = data.get('recipient_username', '').strip()
+    if not recipient:
+        return jsonify({"error": "recipient_username is required"}), 400
+
+    cfg = _load_config()
+    user_block = cfg.get(recipient)
+    if not user_block or not user_block.get('email'):
+        return jsonify({"error": f"No email configured for {recipient}"}), 400
+
+    items = GroceryItem.query.order_by(GroceryItem.created_at).all()
+    if not items:
+        return jsonify({"error": "Grocery list is empty"}), 400
+
+    lines = ["Grocery List", "=" * 30, ""]
+    for i in items:
+        lines.append(f"  - {i.item_name}  (added by {i.added_by})")
+    lines.append("")
+    lines.append("-- Family Hub")
+
+    msg = EmailMessage()
+    msg["Subject"] = "Grocery List from Family Hub"
+    msg["To"] = user_block['email']
+    msg.set_content("\n".join(lines))
+    _send_email(msg)
+
+    return jsonify({"message": f"Grocery list sent to {recipient}"}), 200
 
 if __name__ == '__main__':
     with app.app_context():
