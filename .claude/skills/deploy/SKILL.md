@@ -21,7 +21,7 @@ Deploy the Family Hub app to the Digital Ocean droplet. Follow these steps exact
 
 3. **Rebuild and restart the Docker container** (DB is volume-mounted and persists across rebuilds):
    ```bash
-   ssh root@68.183.192.133 "docker stop projecthome && docker rm projecthome && docker build -t projecthome /projecthome/ProjectHomeV2 && docker run -d --name projecthome -p 5000:5000 -v /projecthome/data:/app/instance --restart unless-stopped projecthome"
+   ssh root@68.183.192.133 "docker stop projecthome && docker rm projecthome && docker build -t projecthome /projecthome/ProjectHomeV2 && docker run -d --name projecthome -p 5000:5000 -v /projecthome/data:/app/instance --env-file /projecthome/ProjectHomeV2/.env --restart unless-stopped projecthome"
    ```
 
 4. **Verify** the container is running:
