@@ -275,6 +275,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const checkContent = chore.status === "Completed" ? "&#10003;" : "";
 
                     choreCard.innerHTML = `
+                        <div class="drag-handle" aria-label="Drag to reorder">&#8942;&#8942;</div>
                         <div class="chore-title">${chore.description}</div>
                         <div class="chore-status">
                             <span class="check-icon ${checkClass}">${checkContent}</span>
@@ -322,8 +323,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 ghostClass: "sortable-ghost",
                 chosenClass: "sortable-chosen",
                 dragClass: "sortable-drag",
-                handle: ".chore-item",
+                handle: ".drag-handle",
                 draggable: ".chore-item",
+                delay: 150,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 8,
+                forceFallback: true,
+                fallbackTolerance: 5,
                 onEnd: function (evt) {
                     const choreId = evt.item.getAttribute("data-id");
                     const newDay = evt.to.getAttribute("data-day");
