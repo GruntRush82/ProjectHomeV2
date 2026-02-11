@@ -1,128 +1,122 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Project Home - Family Hub</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=26020902">
-</head>
-<body>
-    <div class="container">
-        <header class="main-header">
-            <h1>Family Hub</h1>
-            <div class="header-accent"></div>
-        </header>
+{% extends "base.html" %}
 
-        <!-- Tab Navigation -->
-        <div class="tab-bar">
-            <button class="tab-btn active" data-tab="chores">Chores</button>
-            <button class="tab-btn" data-tab="grocery">Grocery List</button>
-        </div>
+{% block title %}Chores — Felker Family Hub{% endblock %}
 
-        <!-- ======================== CHORES TAB ======================== -->
-        <div id="tab-chores" class="tab-panel active">
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+{% endblock %}
 
-            <!-- Create User Form -->
-            <section>
-                <h2>Create User</h2>
-                <form id="create-user-form">
-                    <input type="text" id="username-input" placeholder="Enter a username" required>
-                    <button type="submit">Create User</button>
-                </form>
-            </section>
+{% block content %}
+<div class="page-header">
+    <h1>Chores</h1>
+</div>
 
-            <!-- Add Chore Form -->
-            <section>
-                <h2>Add a Chore</h2>
-                <form id="add-chore-form">
-                    <input type="text" id="chore-input" placeholder="Enter a new chore" required>
+<!-- Tab Navigation -->
+<div class="tab-bar">
+    <button class="tab-btn active" data-tab="chores">Chores</button>
+    <button class="tab-btn" data-tab="grocery">Grocery List</button>
+</div>
 
-                    <select id="user-select" required>
-                        <option value="" disabled selected>Select User</option>
-                    </select>
+<!-- ======================== CHORES TAB ======================== -->
+<div id="tab-chores" class="tab-panel active">
 
-                    <select id="day-select" required>
-                        <option value="" disabled selected>Select Day</option>
-                        <option>Monday</option>
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                        <option>Friday</option>
-                        <option>Saturday</option>
-                        <option>Sunday</option>
-                    </select>
+    <!-- Create User Form -->
+    <section>
+        <h2>Create User</h2>
+        <form id="create-user-form">
+            <input type="text" id="username-input" placeholder="Enter a username" required>
+            <button type="submit">Create User</button>
+        </form>
+    </section>
 
-                    <select id="rotation-select" required>
-                        <option value="" disabled selected>Rotation Type</option>
-                        <option value="static">Static</option>
-                        <option value="rotating">Rotating</option>
-                    </select>
+    <!-- Add Chore Form -->
+    <section>
+        <h2>Add a Chore</h2>
+        <form id="add-chore-form">
+            <input type="text" id="chore-input" placeholder="Enter a new chore" required>
 
-                    <button type="submit">Add Chore</button>
-                </form>
-            </section>
+            <select id="user-select" required>
+                <option value="" disabled selected>Select User</option>
+            </select>
 
-            <div id="rotation-setup" class="rotation-ui" style="display: none;">
-                <h3>Assign Rotating Chore</h3>
-                <label>Add additional users to rotation:</label>
-                <select id="rotation-user-select">
-                    <option value="" disabled selected>Select user</option>
-                </select>
-                <button id="add-user-btn">Add</button>
-                <div id="rotation-list-container" style="display: none;">
-                    <div id="rotation-pinned-user" class="rotation-user pinned"></div>
-                    <div id="rotation-list"></div>
-                </div>
-            </div>
+            <select id="day-select" required>
+                <option value="" disabled selected>Select Day</option>
+                <option>Monday</option>
+                <option>Tuesday</option>
+                <option>Wednesday</option>
+                <option>Thursday</option>
+                <option>Friday</option>
+                <option>Saturday</option>
+                <option>Sunday</option>
+            </select>
 
-            <!-- Chore Grid Container -->
-            <section>
-                <h2>Weekly Chore Grid</h2>
-                <button id="reset-week-btn" style="max-width:180px;margin-bottom:10px;">
-                    Reset Week
-                </button>
+            <select id="rotation-select" required>
+                <option value="" disabled selected>Rotation Type</option>
+                <option value="static">Static</option>
+                <option value="rotating">Rotating</option>
+            </select>
 
-                <div id="chore-list">
-                    <!-- JavaScript will dynamically insert each user's row here -->
-                </div>
-            </section>
-        </div>
+            <button type="submit">Add Chore</button>
+        </form>
+    </section>
 
-        <!-- ======================== GROCERY TAB ======================== -->
-        <div id="tab-grocery" class="tab-panel">
-            <section class="grocery-panel">
-                <h2>Grocery List</h2>
-
-                <div class="grocery-input-row">
-                    <input type="text" id="grocery-input" placeholder="Add an item...">
-                    <select id="grocery-user-select">
-                        <option value="" disabled selected>Who's adding?</option>
-                    </select>
-                    <button id="grocery-add-btn">Add</button>
-                </div>
-
-                <ul class="grocery-list" id="grocery-list">
-                    <!-- populated by JS -->
-                </ul>
-
-                <div class="grocery-actions">
-                    <select id="grocery-send-select">
-                        <option value="" disabled selected>Send to...</option>
-                    </select>
-                    <button class="grocery-send-btn" id="grocery-send-btn">Send List</button>
-                    <button class="grocery-clear-btn" id="grocery-clear-btn">Clear All</button>
-                </div>
-            </section>
+    <div id="rotation-setup" class="rotation-ui" style="display: none;">
+        <h3>Assign Rotating Chore</h3>
+        <label>Add additional users to rotation:</label>
+        <select id="rotation-user-select">
+            <option value="" disabled selected>Select user</option>
+        </select>
+        <button id="add-user-btn">Add</button>
+        <div id="rotation-list-container" style="display: none;">
+            <div id="rotation-pinned-user" class="rotation-user pinned"></div>
+            <div id="rotation-list"></div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="{{ url_for('static', filename='scripts.js') }}?v=26020902"></script>
-    <!-- celebratory audio -->
-    <audio id="cheer-sound" src="{{ url_for('static', filename='cheer.wav') }}" preload="auto" playsinline></audio>
-</body>
-</html>
+    <!-- Chore Grid Container -->
+    <section>
+        <h2>Weekly Chore Grid</h2>
+        <button id="reset-week-btn" style="max-width:180px;margin-bottom:10px;">
+            Reset Week
+        </button>
+
+        <div id="chore-list">
+            <!-- JavaScript will dynamically insert each user's row here -->
+        </div>
+    </section>
+</div>
+
+<!-- ======================== GROCERY TAB ======================== -->
+<div id="tab-grocery" class="tab-panel">
+    <section class="grocery-panel">
+        <h2>Grocery List</h2>
+
+        <div class="grocery-input-row">
+            <input type="text" id="grocery-input" placeholder="Add an item...">
+            <select id="grocery-user-select">
+                <option value="" disabled selected>Who's adding?</option>
+            </select>
+            <button id="grocery-add-btn">Add</button>
+        </div>
+
+        <ul class="grocery-list" id="grocery-list">
+            <!-- populated by JS -->
+        </ul>
+
+        <div class="grocery-actions">
+            <select id="grocery-send-select">
+                <option value="" disabled selected>Send to...</option>
+            </select>
+            <button class="grocery-send-btn" id="grocery-send-btn">Send List</button>
+            <button class="grocery-clear-btn" id="grocery-clear-btn">Clear All</button>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/scripts.js') }}?v=2.0.0"></script>
+<!-- celebratory audio -->
+<audio id="cheer-sound" src="{{ url_for('static', filename='sounds/cheer.wav') }}" preload="auto" playsinline></audio>
+{% endblock %}

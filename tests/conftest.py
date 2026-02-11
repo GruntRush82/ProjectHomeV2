@@ -35,13 +35,19 @@ def client(app):
 
 
 @pytest.fixture
-def auth_client(client):
-    """Test client that bypasses IP trust (simulates trusted IP).
+def auth_client(app, client):
+    """Test client that bypasses IP trust (simulates trusted IP)."""
+    from datetime import datetime
+    from app.models.security import TrustedIP
 
-    Phase 1+: This will set a trusted IP in the DB so the auth
-    middleware lets requests through without a PIN.
-    """
-    # TODO Phase 1.4: Insert a TrustedIP row for 127.0.0.1
+    with app.app_context():
+        trust = TrustedIP(
+            ip_address="127.0.0.1",
+            trusted_at=datetime.utcnow(),
+            last_seen=datetime.utcnow(),
+        )
+        _db.session.add(trust)
+        _db.session.commit()
     return client
 
 

@@ -85,7 +85,7 @@ def _weekly_archive(*, send_reports=True):
 
 # ── routes ───────────────────────────────────────────────────────────
 
-@chores_bp.route("/")
+@chores_bp.route("/chores-page")
 def home():
     from flask import render_template
 

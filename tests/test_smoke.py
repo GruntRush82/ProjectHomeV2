@@ -19,7 +19,7 @@ def test_app_fixture_creates_app(app):
 def test_client_fixture_works(client):
     """Verify the test client can make requests."""
     response = client.get("/")
-    # V1 returns 200 for the main page
+    # V2 login page returns 200
     assert response.status_code == 200
 
 

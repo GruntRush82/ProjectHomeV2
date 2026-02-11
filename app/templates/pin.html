@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Felker Family Hub &mdash; PIN</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.0.0">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <div class="pin-page" x-data="pinApp">
+        <div class="login-brand">
+            <h1>Felker Family Hub</h1>
+        </div>
+
+        <div class="pin-card">
+            <h2>Enter PIN</h2>
+            <p>Enter the 4-digit family PIN to continue</p>
+
+            {% if lockout_remaining %}
+            <div class="pin-lockout">
+                Too many attempts. Try again in {{ lockout_remaining }} minutes.
+            </div>
+            {% else %}
+            <!-- PIN dots -->
+            <div class="pin-dots">
+                <template x-for="i in 4">
+                    <div class="pin-dot" :class="{ 'filled': pin.length >= i }"></div>
+                </template>
+            </div>
+
+            <!-- Number pad -->
+            <div class="pin-pad">
+                <template x-for="n in [1,2,3,4,5,6,7,8,9]">
+                    <button class="pin-key" type="button" @click="addDigit(n)" x-text="n"></button>
+                </template>
+                <div></div>
+                <button class="pin-key" type="button" @click="addDigit(0)">0</button>
+                <button class="pin-key backspace" type="button" @click="removeDigit()">&larr;</button>
+            </div>
+
+            <div class="pin-error" x-text="error">&nbsp;</div>
+
+            <!-- Hidden form for submission -->
+            <form method="POST" action="/pin" x-ref="pinForm" style="display:none;">
+                <input type="hidden" name="pin" x-model="pin">
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('pinApp', () => ({
+            pin: '',
+            error: '{{ error or "" }}',
+            submitting: false,
+
+            addDigit(n) {
+                if (this.submitting || this.pin.length >= 4) return;
+                this.pin += String(n);
+                this.error = '';
+                if (this.pin.length === 4) {
+                    this.submit();
+                }
+            },
+
+            removeDigit() {
+                if (this.submitting) return;
+                this.pin = this.pin.slice(0, -1);
+            },
+
+            submit() {
+                this.submitting = true;
+                this.$refs.pinForm.submit();
+            }
+        }));
+    });
+    </script>
+</body>
+</html>

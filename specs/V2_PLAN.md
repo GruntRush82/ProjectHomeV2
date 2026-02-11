@@ -1,10 +1,10 @@
 # Project Home V2 — Master Plan
 
-> **Status:** PLAN COMPLETE — Ready for owner approval. Then begin Phase 1.
+> **Status:** Phase 1 COMPLETE — Ready for Phase 2 (Calendar Dashboard & Streaks).
 >
 > **Branch:** `v2` (created from `master`)
 >
-> **Last updated:** 2026-02-09 (reformulated after Round 2 Q&A)
+> **Last updated:** 2026-02-11 (Phase 1 completed)
 
 ---
 
@@ -17,10 +17,10 @@
 - `v2` branch created from master
 - V1 codebase fully reviewed
 - Phased plan complete (below)
+- **Phase 1 COMPLETE** — project restructured, dark theme, auth/PIN, login screen, all V1 features working, 56 tests passing
 
 **What's next:**
-- Owner approves this plan
-- Begin Phase 1 implementation
+- Begin Phase 2: Calendar Dashboard & Streaks (Google Calendar integration, daily view, streak tracking)
 
 ---
 
@@ -863,3 +863,5 @@ LILAH (Level 5 — Champion):
 | 2026-02-09 | V1 codebase reviewed. Initial phased plan drafted. | Round 2 Q&A. |
 | 2026-02-09 | Round 2 Q&A completed (30 questions). Plan reformulated: renamed to "Felker Family Hub", complete UX redesign (dark modern theme), mission icons separated from achievements, interest ticker in nav bar, savings crystal visualization, tiered notifications, level-unlocked icons, cashout = cash + unlocked savings, admin approval for piano. DECISIONS.md updated to 92 items. | Owner approval, then begin Phase 1. |
 | 2026-02-09 | Testing infrastructure set up. Created TESTING_PLAN.md, requirements.txt, requirements-dev.txt, pyproject.toml, tests/ directory with conftest.py, fixtures, and E2E config. Installed pytest, playwright (Chromium), factory-boy, freezegun, coverage, ruff. All 5 smoke tests pass. Updated .gitignore. | Owner approves plan, then begin Phase 1 implementation. |
+| 2026-02-10 | Phase 1 partially implemented (interrupted): 1.1 project restructure (app factory, extensions, config, run.py, requirements), 1.3 DB changes (User expanded, TrustedIP/PinAttempt/AppConfig models, Alembic migration), 1.6 V1 blueprints (chores/grocery/users migrated, 37 tests). | Complete remaining Phase 1: 1.2, 1.4, 1.5, 1.7. |
+| 2026-02-11 | Phase 1 COMPLETE. All sub-tasks done: 1.2 dark theme + base.html with bottom nav + Alpine.js; 1.4 auth blueprint (PIN, IP trust, rate limiting, lockout); 1.5 login screen with user cards + level badges + session mgmt; 1.7 data migration script. Chore tracker template extends base.html. 56 tests all passing (auth, session, chores, grocery, users, smoke). | Begin Phase 2: Calendar Dashboard & Streaks. |

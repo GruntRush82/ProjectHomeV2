@@ -1,6 +1,6 @@
 """Felker Family Hub — application factory."""
 
-from flask import Flask
+from flask import Flask, session
 
 from app.config import Config, TestConfig
 from app.extensions import db, migrate, socketio, scheduler
@@ -35,6 +35,12 @@ def create_app(testing=False):
     # Register blueprints
     _register_blueprints(flask_app)
 
+    # Register before-request hook for IP trust / PIN auth
+    _register_auth_hook(flask_app)
+
+    # Inject current_user into all templates
+    _register_context_processors(flask_app)
+
     # Register error handlers
     _register_error_handlers(flask_app)
 
@@ -43,13 +49,34 @@ def create_app(testing=False):
 
 def _register_blueprints(flask_app):
     """Import and register all blueprints."""
+    from app.blueprints.auth import auth_bp
     from app.blueprints.chores import chores_bp
     from app.blueprints.grocery import grocery_bp
     from app.blueprints.users import users_bp
 
+    flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(chores_bp)
     flask_app.register_blueprint(grocery_bp)
     flask_app.register_blueprint(users_bp)
+
+
+def _register_auth_hook(flask_app):
+    """Register the IP-trust before-request hook."""
+    from app.blueprints.auth import require_trusted_ip
+
+    flask_app.before_request(require_trusted_ip)
+
+
+def _register_context_processors(flask_app):
+    """Make current_user and idle_timeout available in every template."""
+    from app.models.user import User
+
+    @flask_app.context_processor
+    def inject_current_user():
+        user_id = session.get("current_user_id")
+        user = db.session.get(User, user_id) if user_id else None
+        idle_timeout_ms = flask_app.config.get("IDLE_TIMEOUT_MINUTES", 5) * 60 * 1000
+        return dict(current_user=user, idle_timeout_ms=idle_timeout_ms)
 
 
 def _register_error_handlers(flask_app):

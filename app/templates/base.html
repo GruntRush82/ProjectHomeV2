@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>{% block title %}Felker Family Hub{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.0.0">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="theme-{{ current_user.theme_color if current_user else 'cyan' }}"
+      x-data="app"
+      @visibilitychange.window="handleVisibility()">
+
+    {% block body %}
+    <!-- Page content -->
+    <div class="page-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bottom nav bar -->
+    {% if current_user %}
+    <nav class="bottom-nav">
+        <a href="/" class="nav-item {% if active_nav == 'calendar' %}active{% endif %}">
+            <span class="nav-icon">&#128197;</span>
+            Calendar
+        </a>
+        <a href="/chores" class="nav-item {% if active_nav == 'chores' %}active{% endif %}">
+            <span class="nav-icon">&#9989;</span>
+            Chores
+        </a>
+        <a href="/grocery" class="nav-item {% if active_nav == 'grocery' %}active{% endif %}">
+            <span class="nav-icon">&#128722;</span>
+            Grocery
+        </a>
+        <a href="/bank" class="nav-item {% if active_nav == 'bank' %}active{% endif %}">
+            <span class="nav-icon">&#128176;</span>
+            Bank
+        </a>
+        <a href="/missions" class="nav-item {% if active_nav == 'missions' %}active{% endif %}">
+            <span class="nav-icon">&#127942;</span>
+            Missions
+        </a>
+        <a href="/profile" class="nav-item {% if active_nav == 'profile' %}active{% endif %}">
+            <span class="nav-icon">&#128100;</span>
+            Profile
+        </a>
+
+        <!-- Interest ticker -->
+        <span class="nav-ticker" x-text="tickerDisplay">+$0.000000</span>
+
+        <!-- Current user + switch -->
+        <a href="/session/logout" class="nav-user">
+            <span class="nav-user-avatar">{{ current_user.icon if current_user.icon != 'question_mark' else '?' }}</span>
+            <span>{{ current_user.username }}</span>
+            <span class="nav-level-badge">Lv{{ current_user.level }}</span>
+        </a>
+    </nav>
+    {% endif %}
+    {% endblock %}
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('app', () => ({
+            tickerDisplay: '+$0.000000',
+            idleTimer: null,
+            idleTimeout: {{ idle_timeout_ms|default(300000) }},
+
+            init() {
+                this.resetIdleTimer();
+                document.addEventListener('pointerdown', () => this.resetIdleTimer());
+                document.addEventListener('keydown', () => this.resetIdleTimer());
+            },
+
+            resetIdleTimer() {
+                clearTimeout(this.idleTimer);
+                this.idleTimer = setTimeout(() => {
+                    window.location.href = '/session/logout';
+                }, this.idleTimeout);
+            },
+
+            handleVisibility() {
+                if (document.visibilityState === 'visible') {
+                    this.resetIdleTimer();
+                }
+            }
+        }));
+    });
+    </script>
+</body>
+</html>
