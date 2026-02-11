@@ -1,0 +1,26 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+markers = [
+    "phase1: Phase 1 - Foundation & Security",
+    "phase2: Phase 2 - Calendar & Streaks",
+    "phase3: Phase 3 - Bank & Allowance",
+    "phase4: Phase 4 - Missions",
+    "phase5: Phase 5 - Achievements & Gamification",
+    "phase6: Phase 6 - Admin & Polish",
+    "e2e: End-to-end browser tests (requires Playwright)",
+    "slow: Tests that take more than a few seconds",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["tests/*", "venv/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100

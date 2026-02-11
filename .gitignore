@@ -1,3 +1,22 @@
 .env
 instance/
 __pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+test-results/
+playwright-report/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

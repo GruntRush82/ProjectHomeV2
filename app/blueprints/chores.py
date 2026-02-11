@@ -1,0 +1,247 @@
+"""Chore routes — CRUD, archive, reset, move."""
+
+from datetime import date
+
+from flask import Blueprint, jsonify, request
+
+from app.extensions import db
+from app.models.chore import Chore, ChoreHistory
+from app.models.user import User
+
+chores_bp = Blueprint("chores", __name__)
+
+VALID_DAYS = {
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday",
+}
+
+
+# ── helpers ──────────────────────────────────────────────────────────
+
+def _chore_to_dict(chore):
+    return {
+        "id": chore.id,
+        "description": chore.description,
+        "completed": chore.completed,
+        "user_id": chore.user_id,
+        "username": chore.user.username,
+        "day": chore.day,
+        "rotation_type": chore.rotation_type,
+        "rotation_order": list(chore.rotation_order or []),
+    }
+
+
+def _rotate_chores_once():
+    """Advance rotating chores to the next user in rotation_order."""
+    rotating = Chore.query.filter_by(rotation_type="rotating").all()
+    for chore in rotating:
+        order = chore.rotation_order or []
+        if not order:
+            continue
+        anchor_id = chore.base_user_id or chore.user_id
+        anchor_user = db.session.get(User, anchor_id)
+        if not anchor_user:
+            continue
+        try:
+            nxt = order[(order.index(anchor_user.username) + 1) % len(order)]
+        except ValueError:
+            continue
+        next_user = User.query.filter_by(username=nxt).first()
+        if next_user:
+            chore.user_id = next_user.id
+            chore.base_user_id = next_user.id
+
+
+def _weekly_archive(*, send_reports=True):
+    """Archive current chores, reset, and rotate."""
+    today = date.today()
+    if ChoreHistory.query.filter_by(date=today).first():
+        return
+
+    for chore in Chore.query.all():
+        db.session.add(
+            ChoreHistory(
+                chore_id=chore.id,
+                username=chore.user.username,
+                date=today,
+                completed=chore.completed,
+                day=chore.day,
+                rotation_type=chore.rotation_type,
+            )
+        )
+        chore.completed = False
+
+    _rotate_chores_once()
+    db.session.commit()
+
+    if send_reports:
+        try:
+            from reporting import generate_weekly_reports
+
+            generate_weekly_reports(db.session)
+        except ImportError:
+            pass
+
+
+# ── routes ───────────────────────────────────────────────────────────
+
+@chores_bp.route("/")
+def home():
+    from flask import render_template
+
+    return render_template("chore_tracker.html")
+
+
+@chores_bp.route("/chores", methods=["GET"])
+def get_chores():
+    chores = Chore.query.all()
+    return jsonify([_chore_to_dict(c) for c in chores])
+
+
+@chores_bp.route("/chores/<int:id>", methods=["GET"])
+def get_chore(id):
+    chore = Chore.query.get_or_404(id)
+    return jsonify({
+        "id": chore.id,
+        "description": chore.description,
+        "completed": chore.completed,
+    })
+
+
+@chores_bp.route("/chores", methods=["POST"])
+def add_chore():
+    data = request.get_json()
+    description = data.get("description")
+    user_id = data.get("user_id")
+    day = data.get("day")
+    rotation_type = data.get("rotation_type", "static")
+    rotation_order = data.get("rotation_order", [])
+
+    if not description or not user_id:
+        return jsonify({"error": "Description and user_id are required"}), 400
+    if day not in VALID_DAYS:
+        return jsonify({"error": "Invalid day(s) provided"}), 400
+
+    new_chore = Chore(
+        description=description,
+        user_id=user_id,
+        day=day,
+        rotation_type=rotation_type.lower(),
+        rotation_order=rotation_order,
+        base_user_id=user_id if rotation_type.lower() == "rotating" else None,
+    )
+    db.session.add(new_chore)
+    db.session.commit()
+
+    return jsonify(_chore_to_dict(new_chore)), 201
+
+
+@chores_bp.route("/chores/<int:id>", methods=["PUT"])
+def update_chore(id):
+    chore = Chore.query.get_or_404(id)
+    data = request.get_json()
+
+    description = data.get("description")
+    completed = data.get("completed")
+
+    if description is not None:
+        chore.description = description
+    if completed is not None:
+        chore.completed = completed
+
+    db.session.commit()
+    return jsonify({
+        "id": chore.id,
+        "description": chore.description,
+        "completed": chore.completed,
+    }), 200
+
+
+@chores_bp.route("/chores/<int:id>", methods=["DELETE"])
+def delete_chore(id):
+    chore = Chore.query.get_or_404(id)
+    ChoreHistory.query.filter_by(chore_id=chore.id).delete()
+    db.session.delete(chore)
+    db.session.commit()
+    return jsonify({"message": "Chore deleted"}), 200
+
+
+@chores_bp.route("/chores/<int:id>/move", methods=["PUT"])
+def move_chore(id):
+    chore = Chore.query.get_or_404(id)
+    data = request.get_json()
+    new_user_id = data.get("user_id")
+    new_day = data.get("day")
+
+    if new_day and new_day not in VALID_DAYS:
+        return jsonify({"error": "Invalid day provided"}), 400
+
+    if new_user_id is not None:
+        user = db.session.get(User, new_user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        chore.user_id = new_user_id
+
+    if new_day:
+        chore.day = new_day
+
+    db.session.commit()
+    return jsonify(_chore_to_dict(chore)), 200
+
+
+@chores_bp.route("/chores/archive", methods=["POST"])
+def archive_chores():
+    for chore in Chore.query.all():
+        db.session.add(
+            ChoreHistory(
+                chore_id=chore.id,
+                username=chore.user.username,
+                date=date.today(),
+                completed=chore.completed,
+                day=chore.day,
+                rotation_type=chore.rotation_type,
+            )
+        )
+        chore.completed = False
+    db.session.commit()
+    return jsonify({"message": "All chores archived and reset"}), 200
+
+
+@chores_bp.route("/chores/reset", methods=["POST"])
+def manual_weekly_reset():
+    body = request.get_json(silent=True) or {}
+    send_flag = bool(body.get("generate_reports"))
+
+    ChoreHistory.query.filter_by(date=date.today()).delete()
+    db.session.commit()
+
+    _weekly_archive(send_reports=send_flag)
+    return jsonify({
+        "message": "Week archived & rotated",
+        "reports_sent": send_flag,
+        "date": str(date.today()),
+    }), 200
+
+
+@chores_bp.route("/archive", methods=["GET"])
+def get_archive():
+    history = ChoreHistory.query.all()
+    return jsonify([
+        {
+            "id": r.id,
+            "chore_id": r.chore_id,
+            "username": r.username,
+            "date": r.date.strftime("%Y-%m-%d"),
+            "completed": r.completed,
+            "day": r.day,
+            "rotation_type": r.rotation_type,
+        }
+        for r in history
+    ])
+
+
+@chores_bp.route("/chores/clear-archive", methods=["DELETE"])
+def clear_archive():
+    ChoreHistory.query.delete()
+    db.session.commit()
+    return jsonify({"message": "Chore history cleared successfully"}), 200
