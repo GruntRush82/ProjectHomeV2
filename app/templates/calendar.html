@@ -171,20 +171,15 @@ document.addEventListener('alpine:init', () => {
                 this.choresDone = this.chores.filter(c => c.completed).length;
 
                 if (newState) {
-                    // Confetti + cheer
-                    if (typeof confetti === 'function') {
-                        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
-                    }
+                    // Cheer sound on each completion
                     const sound = document.getElementById('cheer-sound');
                     if (sound) { sound.currentTime = 0; sound.play().catch(() => {}); }
 
-                    // Extra celebration if all done
+                    // Confetti only when ALL chores are done
                     if (this.choresDone === this.choresTotal) {
-                        setTimeout(() => {
-                            if (typeof confetti === 'function') {
-                                confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
-                            }
-                        }, 500);
+                        if (typeof confetti === 'function') {
+                            confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
+                        }
                     }
                 }
             } catch (e) {
