@@ -1,6 +1,15 @@
 /* ============================================================
    Felker Family Hub V2 — Dark Modern Theme
    iPad landscape-first, neon accents, glassmorphism
+   ============================================================
+
+   NOTE — Borders on gradient elements:
+   Never use `border` with semi-transparent colors on elements
+   that have a gradient background. The border blends with the
+   gradient, producing visible colored lines at the edges
+   (e.g. cyan on one side, purple on the other). Use
+   `box-shadow: inset 0 0 0 1px <color>` instead — it renders
+   on top of the background without blending.
    ============================================================ */
 
 /* ---------- custom properties ---------- */
@@ -344,27 +353,25 @@ form button[type="submit"]:hover {
 }
 
 .filter-btn {
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--blur));
+  background: var(--bg-surface);
   color: var(--text-dim);
   font-weight: 600;
-  border: 1px solid var(--glass-border);
+  border: none;
   border-radius: 999px;
-  padding: 7px 18px;
+  padding: 8px 19px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: inset 0 0 0 1px var(--glass-border);
 }
 .filter-btn:hover {
   color: var(--text);
-  border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.12);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 10px rgba(0, 212, 255, 0.12);
   transform: translateY(-1px);
 }
 .filter-btn.active {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;
-  border-color: transparent;
   box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
 }
 
@@ -788,11 +795,16 @@ section:last-of-type {
 
 .user-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 200px));
-  gap: 20px;
+  grid-template-columns: repeat(5, 140px);
+  gap: 24px;
   justify-content: center;
   max-width: 900px;
   width: 100%;
+}
+
+.user-card-form {
+  margin: 0;
+  padding: 0;
 }
 
 .user-card {
@@ -801,19 +813,28 @@ section:last-of-type {
   align-items: center;
   gap: 12px;
   padding: 28px 20px;
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--blur));
-  border: 1px solid var(--glass-border);
+  background: var(--bg-surface);
+  border: none;
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.25s ease;
   text-decoration: none;
   color: var(--text);
+  position: relative;
+  /* reset button defaults */
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  width: 100%;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--glass-border);
 }
 .user-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 12px 40px rgba(0, 0, 0, 0.3);
   text-decoration: none;
 }
 
@@ -826,11 +847,45 @@ section:last-of-type {
   align-items: center;
   justify-content: center;
   font-size: 28px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s;
+  color: #fff;
+  border: none;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  /* Float effect — lifted above the card surface */
+  transform: translateY(-8px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 8px rgba(0, 212, 255, 0.1);
+}
+/* Elliptical shadow on the card surface beneath the avatar */
+.user-card::before {
+  content: '';
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45) 0%, transparent 70%);
+  z-index: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
 }
 .user-card:hover .user-card-avatar {
-  box-shadow: 0 0 24px rgba(0, 212, 255, 0.3);
+  transform: translateY(-14px);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(0, 212, 255, 0.2);
+}
+.user-card:hover::before {
+  top: 50px;
+  width: 40px;
+  height: 8px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0%, transparent 70%);
 }
 
 /* level-based card effects */
@@ -1138,8 +1193,8 @@ section:last-of-type {
   .user-name { font-size: 1.2rem; }
   section, .card { padding: 14px; }
   .login-brand h1 { font-size: 1.8rem; }
-  .user-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-  .user-card { padding: 20px 16px; }
+  .user-grid { grid-template-columns: repeat(3, 120px); gap: 12px; }
+  .user-card { padding: 20px 12px; }
   .user-card-avatar { width: 52px; height: 52px; font-size: 24px; }
 }
 
@@ -1155,28 +1210,25 @@ section:last-of-type {
   margin-bottom: 24px;
 }
 .tab-btn {
-  padding: 10px 32px;
-  border: none;
+  padding: 11px 33px;
   border-radius: 999px;
   font-family: 'Poppins', sans-serif;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   color: var(--text-dim);
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--blur));
-  border: 1px solid var(--glass-border);
+  background: var(--bg-surface);
+  border: none;
   transition: all 0.25s;
+  box-shadow: inset 0 0 0 1px var(--glass-border);
 }
 .tab-btn:hover {
   color: var(--text);
-  border-color: var(--accent);
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 12px rgba(0, 212, 255, 0.15);
 }
 .tab-btn.active {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;
-  border-color: transparent;
   box-shadow: 0 0 18px rgba(0, 212, 255, 0.25);
 }
 .tab-panel { display: none; }

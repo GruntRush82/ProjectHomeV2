@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.0.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.1.1">
 </head>
 <body>
     <div class="login-page">
@@ -18,7 +18,7 @@
 
         <div class="user-grid">
             {% for user in users %}
-            <form method="POST" action="/session" style="margin:0;">
+            <form class="user-card-form" method="POST" action="/session">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <button type="submit" class="user-card" data-level="{{ user.level }}">
                     <div class="user-card-avatar">
