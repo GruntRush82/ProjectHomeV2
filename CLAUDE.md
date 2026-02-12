@@ -18,6 +18,24 @@ python run.py              # Starts on http://0.0.0.0:5000
 
 **IMPORTANT:** When starting a new session for V2 work, ALWAYS read `specs/V2_PLAN.md` first for current status and next steps.
 
+## Environment (.env)
+
+`run.py` loads `.env` via `python-dotenv`. The file is **NOT tracked in git**. Required variables:
+
+```
+MAILGUN_API_KEY=<key>
+MAILGUN_DOMAIN=<sandbox domain>
+
+# Google Calendar (Phase 2)
+GOOGLE_SERVICE_ACCOUNT_JSON=/home/felke/google-service-account.json
+GOOGLE_CALENDAR_ID=carlyfelker@gmail.com
+```
+
+**Google Calendar setup:**
+- Service account JSON key at the path above (not tracked in git)
+- `carlyfelker@gmail.com` calendar shared with the service account `client_email`
+- Service gracefully degrades (returns empty events) if credentials missing or API fails
+
 ## V2 File Structure
 
 ```
