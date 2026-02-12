@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar — Felker Family Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="calendarApp" x-init="loadToday()">
+
+    <!-- Today's date header -->
+    <div class="calendar-header">
+        <h1 class="page-title" x-text="dayName"></h1>
+        <div class="calendar-date" x-text="formattedDate"></div>
+    </div>
+
+    <!-- Streak banner -->
+    <div class="streak-banner" x-show="streak > 0" x-cloak>
+        <span class="streak-fire">&#128293;</span>
+        <span class="streak-text" x-text="streak + '-week streak'"></span>
+        <span class="streak-best" x-show="streak === streakBest" x-cloak>Personal best!</span>
+    </div>
+
+    <div class="calendar-grid">
+        <!-- Today's Chores -->
+        <section class="calendar-section">
+            <div class="section-header">
+                <h2>Today's Chores</h2>
+                <span class="progress-badge" x-text="choresDone + '/' + choresTotal"></span>
+            </div>
+
+            <div x-show="chores.length === 0" class="empty-state">
+                No chores today!
+            </div>
+
+            <template x-for="chore in chores" :key="chore.id">
+                <div class="chore-item" :class="{ 'chore-done': chore.completed }">
+                    <button class="chore-check" @click="toggleChore(chore)"
+                            :class="{ 'checked': chore.completed }">
+                        <span x-show="!chore.completed">&#9711;</span>
+                        <span x-show="chore.completed">&#10003;</span>
+                    </button>
+                    <span class="chore-text" x-text="chore.description"
+                          :class="{ 'chore-strikethrough': chore.completed }"></span>
+                </div>
+            </template>
+
+            <!-- Progress bar -->
+            <div class="chore-progress-bar" x-show="choresTotal > 0">
+                <div class="chore-progress-fill"
+                     :style="'width:' + (choresTotal > 0 ? Math.round(choresDone/choresTotal*100) : 0) + '%'">
+                </div>
+            </div>
+        </section>
+
+        <!-- Calendar Events -->
+        <section class="calendar-section">
+            <div class="section-header">
+                <h2>Events</h2>
+                <button class="add-event-btn" @click="showEventForm = !showEventForm">
+                    <span x-text="showEventForm ? 'Cancel' : '+ Add'"></span>
+                </button>
+            </div>
+
+            <!-- Add event form -->
+            <div x-show="showEventForm" x-cloak class="event-form">
+                <input type="text" x-model="newEvent.title" placeholder="Event title"
+                       class="form-input" @keydown.enter="createEvent()">
+                <div class="event-form-row">
+                    <input type="date" x-model="newEvent.date" class="form-input">
+                    <input type="time" x-model="newEvent.time" class="form-input"
+                           placeholder="Time (optional)">
+                </div>
+                <input type="text" x-model="newEvent.description" placeholder="Description (optional)"
+                       class="form-input">
+                <button class="btn-primary" @click="createEvent()">Add Event</button>
+            </div>
+
+            <!-- Google Calendar events -->
+            <template x-for="(event, i) in googleEvents" :key="'g'+i">
+                <div class="event-item google-event">
+                    <div class="event-time" x-text="formatTime(event.start_time)"></div>
+                    <div class="event-details">
+                        <div class="event-title" x-text="event.title"></div>
+                        <div class="event-desc" x-show="event.description" x-text="event.description"></div>
+                    </div>
+                    <span class="event-source">Google</span>
+                </div>
+            </template>
+
+            <!-- Local events -->
+            <template x-for="event in localEvents" :key="'l'+event.id">
+                <div class="event-item local-event">
+                    <div class="event-time" x-text="event.event_time || 'All day'"></div>
+                    <div class="event-details">
+                        <div class="event-title" x-text="event.title"></div>
+                        <div class="event-desc" x-show="event.description" x-text="event.description"></div>
+                    </div>
+                    <button class="event-delete" @click="deleteEvent(event.id)"
+                            title="Delete event">&times;</button>
+                </div>
+            </template>
+
+            <div x-show="googleEvents.length === 0 && localEvents.length === 0 && !showEventForm"
+                 class="empty-state">
+                No events today
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- Cheer sound -->
+<audio id="cheer-sound" src="{{ url_for('static', filename='sounds/cheer.wav') }}" preload="auto" playsinline></audio>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('calendarApp', () => ({
+        dayName: '',
+        formattedDate: '',
+        streak: 0,
+        streakBest: 0,
+        chores: [],
+        choresDone: 0,
+        choresTotal: 0,
+        googleEvents: [],
+        localEvents: [],
+        showEventForm: false,
+        newEvent: { title: '', date: '', time: '', description: '' },
+
+        async loadToday() {
+            try {
+                const res = await fetch('/api/calendar/today');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                this.dayName = data.day_name;
+                const d = new Date(data.date + 'T00:00:00');
+                this.formattedDate = d.toLocaleDateString('en-US', {
+                    month: 'long', day: 'numeric', year: 'numeric'
+                });
+
+                this.streak = data.streak_current;
+                this.streakBest = data.streak_best;
+                this.chores = data.chores;
+                this.choresDone = data.progress.done;
+                this.choresTotal = data.progress.total;
+                this.googleEvents = data.google_events;
+                this.localEvents = data.local_events;
+
+                // Default new event date to today
+                this.newEvent.date = data.date;
+            } catch (e) {
+                console.error('Failed to load calendar data:', e);
+            }
+        },
+
+        async toggleChore(chore) {
+            const newState = !chore.completed;
+            try {
+                const res = await fetch(`/chores/${chore.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed: newState })
+                });
+                if (!res.ok) return;
+
+                chore.completed = newState;
+                this.choresDone = this.chores.filter(c => c.completed).length;
+
+                if (newState) {
+                    // Confetti + cheer
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+                    }
+                    const sound = document.getElementById('cheer-sound');
+                    if (sound) { sound.currentTime = 0; sound.play().catch(() => {}); }
+
+                    // Extra celebration if all done
+                    if (this.choresDone === this.choresTotal) {
+                        setTimeout(() => {
+                            if (typeof confetti === 'function') {
+                                confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
+                            }
+                        }, 500);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to toggle chore:', e);
+            }
+        },
+
+        async createEvent() {
+            const title = this.newEvent.title.trim();
+            if (!title) return;
+
+            try {
+                const body = {
+                    title: title,
+                    event_date: this.newEvent.date,
+                    event_time: this.newEvent.time || undefined,
+                    description: this.newEvent.description.trim() || undefined,
+                };
+                const res = await fetch('/calendar/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) return;
+
+                const event = await res.json();
+                this.localEvents.push(event);
+                this.newEvent = { title: '', date: this.newEvent.date, time: '', description: '' };
+                this.showEventForm = false;
+            } catch (e) {
+                console.error('Failed to create event:', e);
+            }
+        },
+
+        async deleteEvent(eventId) {
+            try {
+                const res = await fetch(`/calendar/events/${eventId}`, { method: 'DELETE' });
+                if (!res.ok) return;
+                this.localEvents = this.localEvents.filter(e => e.id !== eventId);
+            } catch (e) {
+                console.error('Failed to delete event:', e);
+            }
+        },
+
+        formatTime(timeStr) {
+            if (!timeStr) return 'All day';
+            try {
+                const d = new Date(timeStr);
+                if (isNaN(d)) return timeStr;
+                return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            } catch {
+                return timeStr;
+            }
+        }
+    }));
+});
+</script>
+{% endblock %}

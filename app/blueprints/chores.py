@@ -52,11 +52,31 @@ def _rotate_chores_once():
             chore.base_user_id = next_user.id
 
 
+def _update_streaks():
+    """Update streak counters for all users based on chore completion."""
+    users = User.query.all()
+    for user in users:
+        user_chores = Chore.query.filter_by(user_id=user.id).all()
+        if not user_chores:
+            continue
+        total = len(user_chores)
+        done = sum(1 for c in user_chores if c.completed)
+        if done == total:
+            user.streak_current += 1
+            if user.streak_current > user.streak_best:
+                user.streak_best = user.streak_current
+        else:
+            user.streak_current = 0
+
+
 def _weekly_archive(*, send_reports=True):
-    """Archive current chores, reset, and rotate."""
+    """Archive current chores, reset, rotate, and update streaks."""
     today = date.today()
     if ChoreHistory.query.filter_by(date=today).first():
         return
+
+    # Update streaks BEFORE archiving (need current completion state)
+    _update_streaks()
 
     for chore in Chore.query.all():
         db.session.add(
@@ -89,7 +109,7 @@ def _weekly_archive(*, send_reports=True):
 def home():
     from flask import render_template
 
-    return render_template("chore_tracker.html")
+    return render_template("chore_tracker.html", active_nav="chores")
 
 
 @chores_bp.route("/chores", methods=["GET"])

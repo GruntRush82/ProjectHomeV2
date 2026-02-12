@@ -12,7 +12,7 @@ python run.py              # Starts on http://0.0.0.0:5000
 
 - **Branch:** `v2` (V1 stays live on `master`)
 - **Specs:** `specs/V2_PLAN.md` (phased plan + session handoff log), `specs/DECISIONS.md` (92 finalized decisions)
-- **Tests:** `pytest tests/` (56 tests, all passing as of Phase 1 completion)
+- **Tests:** `pytest tests/` (71 tests, all passing as of Phase 2 completion)
 - **DB:** SQLite at `instance/chores.db`. For a fresh DB: delete the file and run `python -c "from app import create_app; from app.extensions import db; app=create_app(); app.app_context().push(); db.create_all()"`
 - **Seed production chores:** Pull V1 DB from droplet, map user IDs, insert into V2 DB (see session handoff log in V2_PLAN.md)
 
@@ -27,14 +27,19 @@ app/
 ├── extensions.py            # db, migrate, socketio, scheduler
 ├── blueprints/
 │   ├── auth.py              # PIN, IP trust, login, sessions
-│   ├── chores.py            # Chore CRUD, grid, archive, reset
+│   ├── calendar_bp.py       # Calendar dashboard, events CRUD, today API
+│   ├── chores.py            # Chore CRUD, grid, archive, reset, streak tracking
 │   ├── grocery.py           # Grocery list CRUD, email
 │   └── users.py             # User CRUD
 ├── models/
 │   ├── user.py              # User (username, email, allowance, xp, level, icon, theme...)
 │   ├── chore.py             # Chore, ChoreHistory
+│   ├── calendar.py          # CalendarEvent
 │   ├── grocery.py           # GroceryItem
 │   └── security.py          # TrustedIP, PinAttempt, AppConfig
+├── services/
+│   ├── __init__.py
+│   └── google_cal.py        # Google Calendar API integration (service account, caching)
 ├── scripts/
 │   └── migrate_v1_data.py   # One-time V1 data migration
 ├── static/
@@ -43,6 +48,7 @@ app/
 │   └── sounds/cheer.wav
 └── templates/
     ├── base.html            # Base layout, bottom nav, Alpine.js idle timer
+    ├── calendar.html        # Daily calendar dashboard (served at /calendar)
     ├── login.html           # User selection cards (served at /)
     ├── pin.html             # PIN entry pad (served at /pin)
     └── chore_tracker.html   # Chore grid SPA (served at /chores-page)
@@ -51,8 +57,11 @@ run.py                       # Entry point: socketio.run(app)
 tests/
 ├── conftest.py              # Shared fixtures (app, db, client, auth_client, sample_users, etc.)
 ├── test_smoke.py            # 5 smoke tests
+├── unit/
+│   └── test_streaks.py      # 4 streak tracking unit tests
 └── api/
     ├── test_auth.py         # 10 auth/PIN/IP-trust tests
+    ├── test_calendar_api.py # 11 calendar API tests (today, events CRUD)
     ├── test_session.py      # 8 login/logout/session tests
     ├── test_chores_api.py   # Chore CRUD tests
     ├── test_grocery_api.py  # Grocery CRUD tests
@@ -68,6 +77,8 @@ tests/
 **ChoreHistory:** id, chore_id (FK), username, date, completed, day, rotation_type
 
 **GroceryItem:** id, item_name, added_by, created_at
+
+**CalendarEvent:** id, title, description, event_date, event_time, created_by (FK→User), google_event_id, created_at
 
 **TrustedIP:** id, ip_address (unique), trusted_at, last_seen
 
@@ -86,6 +97,14 @@ tests/
 | `/session/logout` | GET | End session, redirect to `/` |
 
 **App-wide before_request:** `require_trusted_ip` — redirects untrusted IPs to `/pin`. Skips `/static`, `/pin`, `/favicon.ico`. Bypassed entirely if no PIN hash is configured.
+
+### Calendar (calendar_bp.py)
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/calendar` | GET | Render daily calendar dashboard |
+| `/api/calendar/today` | GET | JSON: today's chores, events, streaks, progress |
+| `/calendar/events` | POST | Create local event (+ push to Google Calendar) |
+| `/calendar/events/<id>` | DELETE | Delete local event (+ remove from Google) |
 
 ### Chores (chores.py)
 | Route | Method | Purpose |

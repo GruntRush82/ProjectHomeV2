@@ -184,7 +184,7 @@ def pin_submit():
 def login_page():
     """User selection screen."""
     if session.get("current_user_id"):
-        return redirect(url_for("chores.home"))
+        return redirect(url_for("calendar.calendar_page"))
     users = User.query.order_by(User.id).all()
     return render_template("login.html", users=users)
 
@@ -199,7 +199,7 @@ def create_session():
     if not user:
         return redirect(url_for("auth.login_page"))
     session["current_user_id"] = user.id
-    return redirect(url_for("chores.home"))
+    return redirect(url_for("calendar.calendar_page"))
 
 
 @auth_bp.route("/session/logout")

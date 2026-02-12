@@ -1,10 +1,10 @@
 # Project Home V2 — Master Plan
 
-> **Status:** Phase 1 COMPLETE — Ready for Phase 2 (Calendar Dashboard & Streaks).
+> **Status:** Phase 2 COMPLETE — Ready for Phase 3 (Bank & Savings).
 >
 > **Branch:** `v2` (created from `master`)
 >
-> **Last updated:** 2026-02-11 (Phase 1 completed)
+> **Last updated:** 2026-02-11 (Phase 2 completed)
 
 ---
 
@@ -18,9 +18,10 @@
 - V1 codebase fully reviewed
 - Phased plan complete (below)
 - **Phase 1 COMPLETE** — project restructured, dark theme, auth/PIN, login screen, all V1 features working, 56 tests passing
+- **Phase 2 COMPLETE** — Calendar dashboard, Google Calendar integration, CalendarEvent model, streak tracking, 71 tests passing
 
 **What's next:**
-- Begin Phase 2: Calendar Dashboard & Streaks (Google Calendar integration, daily view, streak tracking)
+- Begin Phase 3: Bank & Savings (BankAccount model, transactions, interest ticker, savings goals)
 
 ---
 
@@ -865,3 +866,5 @@ LILAH (Level 5 — Champion):
 | 2026-02-09 | Testing infrastructure set up. Created TESTING_PLAN.md, requirements.txt, requirements-dev.txt, pyproject.toml, tests/ directory with conftest.py, fixtures, and E2E config. Installed pytest, playwright (Chromium), factory-boy, freezegun, coverage, ruff. All 5 smoke tests pass. Updated .gitignore. | Owner approves plan, then begin Phase 1 implementation. |
 | 2026-02-10 | Phase 1 partially implemented (interrupted): 1.1 project restructure (app factory, extensions, config, run.py, requirements), 1.3 DB changes (User expanded, TrustedIP/PinAttempt/AppConfig models, Alembic migration), 1.6 V1 blueprints (chores/grocery/users migrated, 37 tests). | Complete remaining Phase 1: 1.2, 1.4, 1.5, 1.7. |
 | 2026-02-11 | Phase 1 COMPLETE. All sub-tasks done: 1.2 dark theme + base.html with bottom nav + Alpine.js; 1.4 auth blueprint (PIN, IP trust, rate limiting, lockout); 1.5 login screen with user cards + level badges + session mgmt; 1.7 data migration script. Chore tracker template extends base.html. 56 tests all passing (auth, session, chores, grocery, users, smoke). | Begin Phase 2: Calendar Dashboard & Streaks. |
+| 2026-02-11 | Phase 1 polish: fixed gradient border artifacts on avatars/buttons (replaced semi-transparent `border` with `box-shadow: inset`), added CSS convention note, created V2-specific CLAUDE.md. | Begin Phase 2. |
+| 2026-02-11 | Phase 2 COMPLETE. All sub-tasks done: 2.1 Google Calendar service (`app/services/google_cal.py`) with in-memory cache, graceful degradation; 2.2 CalendarEvent model; 2.3 Calendar blueprint + daily dashboard template with Alpine.js (chore check-off, events CRUD, confetti, progress bar); 2.4 Streak tracking in weekly reset (`_update_streaks()`). Post-login redirect changed from chores to calendar. Updated `.env` with Mailgun + Google Calendar config. 71 tests all passing (15 new: 11 calendar API + 4 streak unit tests). | Set `GOOGLE_CALENDAR_ID` in `.env`, share calendar with service account email. Begin Phase 3: Bank & Savings. |

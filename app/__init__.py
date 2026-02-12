@@ -50,11 +50,13 @@ def create_app(testing=False):
 def _register_blueprints(flask_app):
     """Import and register all blueprints."""
     from app.blueprints.auth import auth_bp
+    from app.blueprints.calendar_bp import calendar_bp
     from app.blueprints.chores import chores_bp
     from app.blueprints.grocery import grocery_bp
     from app.blueprints.users import users_bp
 
     flask_app.register_blueprint(auth_bp)
+    flask_app.register_blueprint(calendar_bp)
     flask_app.register_blueprint(chores_bp)
     flask_app.register_blueprint(grocery_bp)
     flask_app.register_blueprint(users_bp)
