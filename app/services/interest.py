@@ -107,6 +107,6 @@ def get_ticker_data(user_id: int) -> dict:
     return {
         "total_active_savings": round(total_savings, 2),
         "weekly_rate": weekly_rate,
-        "last_interest_credit": last_credit.isoformat() if last_credit else None,
+        "last_interest_credit": (last_credit.isoformat() + "Z") if last_credit else None,
         "accrued_interest": round(calculate_interest(user_id), 6),
     }

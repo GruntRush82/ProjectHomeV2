@@ -88,6 +88,29 @@ class SavingsDeposit(db.Model):
                 if locked
                 else 0
             ),
+            "lock_total_seconds": max(
+                0,
+                int((self.lock_until - self.deposited_at).total_seconds()),
+            ),
+            "melt_percent": (
+                100.0
+                if not locked
+                else round(
+                    min(
+                        100.0,
+                        max(
+                            0.0,
+                            (now - self.deposited_at).total_seconds()
+                            / max(
+                                1,
+                                (self.lock_until - self.deposited_at).total_seconds(),
+                            )
+                            * 100,
+                        ),
+                    ),
+                    1,
+                )
+            ),
         }
 
     def __repr__(self):

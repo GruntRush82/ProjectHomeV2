@@ -68,28 +68,49 @@
             </section>
         </div>
 
-        <!-- Savings Deposits (Crystal/Gem visualization) -->
+        <!-- Savings Deposits (Gold coins behind melting ice) -->
         <section class="bank-deposits-section" x-show="deposits.length > 0">
             <h2 class="section-title">Savings Deposits</h2>
-            <div class="gem-grid">
+            <div class="vault-grid">
                 <template x-for="dep in deposits" :key="dep.id">
-                    <div class="gem-container"
+                    <div class="vault-item"
                          :class="{
-                             'gem-locked': dep.locked,
-                             'gem-unlocked': !dep.locked,
-                             'gem-sm': dep.amount < 10,
-                             'gem-md': dep.amount >= 10 && dep.amount < 50,
-                             'gem-lg': dep.amount >= 50
+                             'vault-locked': dep.locked,
+                             'vault-unlocked': !dep.locked,
+                             'vault-sm': dep.amount < 10,
+                             'vault-md': dep.amount >= 10 && dep.amount < 50,
+                             'vault-lg': dep.amount >= 50
                          }">
-                        <div class="gem-body">
-                            <div class="gem-facets"></div>
-                            <div class="gem-frost" x-show="dep.locked"></div>
-                            <div class="gem-glow" x-show="!dep.locked"></div>
+                        <!-- Gold coins layer (always visible, behind ice) -->
+                        <div class="vault-coins">
+                            <span class="coin coin-1">&#129689;</span>
+                            <span class="coin coin-2">&#129689;</span>
+                            <span class="coin coin-3" x-show="dep.amount >= 10">&#129689;</span>
+                            <span class="coin coin-4" x-show="dep.amount >= 50">&#129689;</span>
                         </div>
-                        <div class="gem-amount" x-text="'$' + dep.amount.toFixed(2)"></div>
-                        <div class="gem-date" x-text="formatDate(dep.deposited_at)"></div>
-                        <div class="gem-timer" x-show="dep.locked" x-text="formatLock(dep.lock_seconds_remaining)"></div>
-                        <button class="gem-withdraw-btn" x-show="!dep.locked"
+                        <!-- Ice overlay — opacity decreases as melt_percent increases -->
+                        <div class="vault-ice"
+                             x-show="dep.locked"
+                             :style="'opacity:' + (1 - dep.melt_percent / 100 * 0.7)
+                                   + '; backdrop-filter: blur(' + Math.max(0, 8 - dep.melt_percent / 100 * 8) + 'px)'">
+                            <div class="ice-crack" x-show="dep.melt_percent > 30"></div>
+                            <div class="ice-crack ice-crack-2" x-show="dep.melt_percent > 60"></div>
+                        </div>
+                        <!-- Unlocked golden glow -->
+                        <div class="vault-glow" x-show="!dep.locked"></div>
+                        <!-- Info overlay -->
+                        <div class="vault-info">
+                            <div class="vault-amount" x-text="'$' + dep.amount.toFixed(2)"></div>
+                            <div class="vault-date" x-text="formatDate(dep.deposited_at)"></div>
+                        </div>
+                        <!-- Progress bar (melt meter) -->
+                        <div class="vault-progress" x-show="dep.locked">
+                            <div class="vault-progress-fill"
+                                 :style="'width:' + dep.melt_percent + '%'"></div>
+                        </div>
+                        <div class="vault-timer" x-show="dep.locked"
+                             x-text="formatLock(dep.lock_seconds_remaining)"></div>
+                        <button class="vault-withdraw-btn" x-show="!dep.locked"
                                 @click="withdrawDeposit(dep.id)">
                             Withdraw
                         </button>

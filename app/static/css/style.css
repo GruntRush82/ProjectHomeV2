@@ -382,7 +382,7 @@ form button[type="submit"]:hover {
   gap: 24px;
 }
 
-section:last-of-type {
+#chore-list section:last-of-type {
   min-width: calc(var(--grid-width) + 50px);
 }
 
@@ -1250,12 +1250,14 @@ section:last-of-type {
 }
 
 /* two-column layout */
-.calendar-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+.calendar-wrapper {
   max-width: 1200px;
   margin: 0 auto;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
 }
 @media (max-width: 768px) {
   .calendar-grid { grid-template-columns: 1fr; }
@@ -1267,6 +1269,9 @@ section:last-of-type {
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: inset 0 0 0 1px var(--glass-border);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .section-header {
   display: flex;
@@ -1289,16 +1294,16 @@ section:last-of-type {
   border-radius: 999px;
 }
 
-/* chore items */
-.chore-item {
+/* chore items (calendar dashboard — scoped to avoid overriding chore grid cards) */
+.calendar-section .chore-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid var(--glass-border);
 }
-.chore-item:last-child { border-bottom: none; }
-.chore-item.chore-done { opacity: 0.6; }
+.calendar-section .chore-item:last-child { border-bottom: none; }
+.calendar-section .chore-item.chore-done { opacity: 0.6; }
 
 .chore-check {
   width: 36px;
@@ -1639,127 +1644,221 @@ section:last-of-type {
   margin-bottom: 12px;
 }
 
-/* -- gem grid -- */
+/* -- vault grid (gold coins behind melting ice) -- */
 .bank-deposits-section {
   margin-bottom: 16px;
 }
-.gem-grid {
+.vault-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
   justify-content: center;
 }
 
-/* -- individual gem -- */
-.gem-container {
+/* -- individual vault item -- */
+.vault-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  position: relative;
-}
-.gem-sm  { width: 80px; }
-.gem-md  { width: 100px; }
-.gem-lg  { width: 120px; }
-
-.gem-body {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 0.85;
-  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  border-radius: 16px;
   overflow: hidden;
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 8px 24px rgba(0,0,0,0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.vault-sm  { width: 120px; height: 160px; }
+.vault-md  { width: 150px; height: 190px; }
+.vault-lg  { width: 180px; height: 220px; }
+
+.vault-item:hover {
+  transform: translateY(-3px);
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 12px 32px rgba(0,0,0,0.4);
 }
 
-/* faceted interior */
-.gem-facets {
+/* -- gold coins layer -- */
+.vault-coins {
   position: absolute;
   inset: 0;
-  background: linear-gradient(160deg,
-    rgba(0, 212, 255, 0.5) 0%,
-    rgba(131, 56, 236, 0.6) 35%,
-    rgba(6, 214, 160, 0.4) 65%,
-    rgba(0, 212, 255, 0.5) 100%
-  );
-}
-.gem-locked .gem-facets {
-  background: linear-gradient(160deg,
-    rgba(100, 140, 180, 0.4) 0%,
-    rgba(140, 160, 200, 0.5) 35%,
-    rgba(100, 130, 170, 0.3) 65%,
-    rgba(120, 150, 190, 0.4) 100%
-  );
-}
-
-/* frost overlay for locked */
-.gem-frost {
-  position: absolute;
-  inset: 0;
-  background: rgba(180, 210, 240, 0.35);
-  backdrop-filter: blur(3px);
-  animation: frost-shimmer 4s ease-in-out infinite;
-}
-@keyframes frost-shimmer {
-  0%, 100% { opacity: 0.35; }
-  50%      { opacity: 0.55; }
-}
-
-/* warm glow for unlocked */
-.gem-glow {
-  position: absolute;
-  inset: -4px;
-  background: radial-gradient(ellipse at center,
-    rgba(255, 215, 0, 0.35) 0%,
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 2rem;
+  z-index: 1;
+  background: radial-gradient(ellipse at 50% 60%,
+    rgba(255, 215, 0, 0.12) 0%,
     transparent 70%
   );
-  animation: gem-pulse 2s ease-in-out infinite;
 }
-@keyframes gem-pulse {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50%      { opacity: 1;   transform: scale(1.05); }
+.vault-sm .vault-coins { font-size: 1.6rem; }
+.vault-lg .vault-coins { font-size: 2.4rem; }
+.coin {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  animation: coin-float 3s ease-in-out infinite;
+}
+.coin-1 { animation-delay: 0s; }
+.coin-2 { animation-delay: 0.5s; }
+.coin-3 { animation-delay: 1s; }
+.coin-4 { animation-delay: 1.5s; }
+@keyframes coin-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
 }
 
-/* unlocked container glow */
-.gem-unlocked .gem-body {
-  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4));
-}
-.gem-locked .gem-body {
-  filter: drop-shadow(0 0 6px rgba(140, 180, 220, 0.25));
+/* unlocked: coins glow warm */
+.vault-unlocked .vault-coins {
+  background: radial-gradient(ellipse at 50% 60%,
+    rgba(255, 215, 0, 0.25) 0%,
+    rgba(255, 165, 0, 0.08) 60%,
+    transparent 80%
+  );
 }
 
-.gem-amount {
+/* -- ice overlay -- */
+.vault-ice {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(180deg,
+    rgba(160, 210, 240, 0.55) 0%,
+    rgba(130, 190, 230, 0.4) 40%,
+    rgba(100, 170, 220, 0.5) 100%
+  );
+  border-radius: 16px;
+  transition: opacity 0.5s;
+}
+
+/* ice crack lines (appear as melt progresses) */
+.ice-crack {
+  position: absolute;
+  top: 30%;
+  left: 20%;
+  width: 60%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  transform: rotate(-15deg);
+  border-radius: 1px;
+  box-shadow:
+    12px 8px 0 rgba(255, 255, 255, 0.3),
+    -8px 14px 0 rgba(255, 255, 255, 0.25);
+}
+.ice-crack-2 {
+  top: 55%;
+  left: 30%;
+  width: 50%;
+  transform: rotate(10deg);
+  box-shadow:
+    -10px 6px 0 rgba(255, 255, 255, 0.35),
+    14px 10px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* -- golden glow for unlocked -- */
+.vault-glow {
+  position: absolute;
+  inset: -8px;
+  z-index: 2;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at center,
+    rgba(255, 215, 0, 0.2) 0%,
+    transparent 70%
+  );
+  animation: vault-pulse 2.5s ease-in-out infinite;
+}
+@keyframes vault-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* unlocked warm border */
+.vault-unlocked {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 215, 0, 0.3),
+    0 0 20px rgba(255, 215, 0, 0.15),
+    0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* -- info overlay -- */
+.vault-info {
+  position: absolute;
+  bottom: 36px;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 0 8px;
+}
+.vault-amount {
   font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--text);
-  margin-top: 6px;
+  font-size: 1.1rem;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
-.gem-date {
+.vault-md .vault-amount { font-size: 1.25rem; }
+.vault-lg .vault-amount { font-size: 1.4rem; }
+.vault-date {
   font-size: 0.7rem;
-  color: var(--text-dim);
+  color: rgba(255,255,255,0.7);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
-.gem-timer {
-  font-size: 0.72rem;
-  color: var(--blue);
+
+/* -- melt progress bar -- */
+.vault-progress {
+  position: absolute;
+  bottom: 24px;
+  left: 12px;
+  right: 12px;
+  height: 5px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 3px;
+  z-index: 3;
+  overflow: hidden;
+}
+.vault-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #4fc3f7, #06d6a0, #ffd700);
+  transition: width 0.5s ease;
+}
+
+/* -- timer badge -- */
+.vault-timer {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-size: 0.68rem;
   font-weight: 600;
-  background: rgba(67, 97, 238, 0.12);
-  padding: 2px 8px;
+  color: #b8d4f0;
+  background: rgba(0,0,0,0.5);
+  padding: 1px 8px;
   border-radius: 6px;
-  margin-top: 4px;
+  white-space: nowrap;
 }
-.gem-withdraw-btn {
-  margin-top: 6px;
-  padding: 4px 14px;
-  font-size: 0.75rem;
-  font-weight: 600;
+
+/* -- withdraw button (unlocked) -- */
+.vault-withdraw-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 6px 18px;
+  font-size: 0.8rem;
+  font-weight: 700;
   border: none;
   border-radius: 999px;
   cursor: pointer;
   background: linear-gradient(135deg, var(--gold), #ff8c00);
   color: #111;
   transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
 }
-.gem-withdraw-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+.vault-withdraw-btn:hover {
+  transform: translateX(-50%) scale(1.08);
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.5);
 }
 
 /* -- goal display -- */
