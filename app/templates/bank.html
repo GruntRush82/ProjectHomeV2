@@ -21,10 +21,10 @@
         <!-- Cashout Section -->
         <section class="bank-cashout-section">
             <div class="bank-cashout-label">Available to cash out</div>
-            <div class="bank-cashout-amount" x-text="'$' + cashoutAvailable.toFixed(2)"></div>
+            <div class="bank-cashout-amount" x-text="'$' + cashoutDisplay"></div>
             <button class="btn-primary bank-cashout-btn"
                     @click="showCashoutModal = true"
-                    :disabled="cashoutAvailable < cashoutMin">
+                    :disabled="(cashBalance + unlockedSavings + accruedInterest) < cashoutMin">
                 Cash Out
             </button>
         </section>
@@ -201,7 +201,7 @@
     <div class="modal-overlay" x-show="showCashoutModal" x-cloak @click.self="showCashoutModal = false">
         <div class="modal-card">
             <h2>Cash Out</h2>
-            <p class="modal-amount" x-text="'$' + cashoutAvailable.toFixed(2)"></p>
+            <p class="modal-amount" x-text="'$' + cashoutDisplay"></p>
             <div class="modal-breakdown" x-show="unlockedSavings > 0">
                 <div>Cash: <span x-text="'$' + cashBalance.toFixed(2)"></span></div>
                 <div>Unlocked savings: <span x-text="'$' + unlockedSavings.toFixed(2)"></span></div>
@@ -248,6 +248,7 @@ document.addEventListener('alpine:init', () => {
         cashoutMin: 1,
         // Interest ticker
         accruedInterest: 0,
+        cashoutDisplay: '0.00',
         tickerSavings: 0,
         tickerRate: 0.05,
         tickerLastCredit: null,
@@ -321,6 +322,9 @@ document.addEventListener('alpine:init', () => {
                 const secondsPerWeek = 7 * 24 * 60 * 60;
                 this.accruedInterest = this.tickerSavings * this.tickerRate * (elapsed / secondsPerWeek);
             }
+            // Cashout available = cash + unlocked savings + accrued interest, penny precision
+            const total = this.cashBalance + this.unlockedSavings + this.accruedInterest;
+            this.cashoutDisplay = (Math.floor(total * 100) / 100).toFixed(2);
             this.tickerRaf = requestAnimationFrame(() => this.tickInterest());
         },
 

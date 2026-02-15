@@ -57,8 +57,8 @@
             Profile
         </a>
 
-        <!-- Interest ticker -->
-        <span class="nav-ticker" x-text="tickerDisplay">+$0.000000</span>
+        <!-- Available to cash out ticker -->
+        <span class="nav-ticker" x-text="tickerDisplay">$0.000000</span>
 
         <!-- Current user + switch -->
         <a href="/session/logout" class="nav-user">
@@ -75,10 +75,12 @@
     <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('app', () => ({
-            tickerDisplay: '+$0.000000',
+            tickerDisplay: '$0.000000',
             _tickerSavings: 0,
             _tickerRate: 0.05,
             _tickerLastCredit: null,
+            _tickerCashBalance: 0,
+            _tickerUnlockedSavings: 0,
             _tickerRaf: null,
             idleTimer: null,
             idleTimeout: {{ idle_timeout_ms|default(300000) }},
@@ -102,17 +104,21 @@
                     this._tickerSavings = data.total_active_savings;
                     this._tickerRate = data.weekly_rate;
                     this._tickerLastCredit = data.last_interest_credit ? new Date(data.last_interest_credit) : null;
+                    this._tickerCashBalance = data.cash_balance || 0;
+                    this._tickerUnlockedSavings = data.unlocked_savings || 0;
                     if (this._tickerRaf) cancelAnimationFrame(this._tickerRaf);
                     this._tickNavTicker();
                 } catch (e) {}
             },
 
             _tickNavTicker() {
+                let interest = 0;
                 if (this._tickerSavings > 0 && this._tickerLastCredit) {
                     const elapsed = (new Date() - this._tickerLastCredit) / 1000;
-                    const interest = this._tickerSavings * this._tickerRate * (elapsed / (7*24*60*60));
-                    this.tickerDisplay = '+$' + interest.toFixed(6);
+                    interest = this._tickerSavings * this._tickerRate * (elapsed / (7*24*60*60));
                 }
+                const total = this._tickerCashBalance + this._tickerUnlockedSavings + interest;
+                this.tickerDisplay = '$' + total.toFixed(6);
                 this._tickerRaf = requestAnimationFrame(() => this._tickNavTicker());
             },
 
@@ -124,6 +130,8 @@
                     this._tickerSavings = data.total_active_savings;
                     this._tickerRate = data.weekly_rate;
                     this._tickerLastCredit = data.last_interest_credit ? new Date(data.last_interest_credit) : null;
+                    this._tickerCashBalance = data.cash_balance || 0;
+                    this._tickerUnlockedSavings = data.unlocked_savings || 0;
                 } catch (e) {}
             },
 

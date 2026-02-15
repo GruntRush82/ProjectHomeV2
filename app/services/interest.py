@@ -104,9 +104,23 @@ def get_ticker_data(user_id: int) -> dict:
         }
 
     last_credit = account.last_interest_credit or account.created_at
+
+    # Cash balance + unlocked savings for nav ticker total-available calculation
+    from app.models.bank import SavingsDeposit
+    now = datetime.utcnow()
+    unlocked_total = sum(
+        d.amount for d in SavingsDeposit.query.filter(
+            SavingsDeposit.user_id == user_id,
+            SavingsDeposit.withdrawn == False,  # noqa: E712
+            SavingsDeposit.lock_until <= now,
+        ).all()
+    )
+
     return {
         "total_active_savings": round(total_savings, 2),
         "weekly_rate": weekly_rate,
         "last_interest_credit": (last_credit.isoformat() + "Z") if last_credit else None,
         "accrued_interest": round(calculate_interest(user_id), 6),
+        "cash_balance": round(account.cash_balance, 2),
+        "unlocked_savings": round(unlocked_total, 2),
     }

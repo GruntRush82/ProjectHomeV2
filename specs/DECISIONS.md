@@ -93,7 +93,7 @@
 | 46 | **Cashout email to user only** | Goes to the user who clicked cashout. |
 | 47 | **Cash account floors at $0** | No negative balances. |
 | 48 | **Per-deposit lock timers** | Each savings deposit has its own lock period with visual countdown. |
-| 49 | **Cashout maximum = cash + unlocked savings** | Cash drawn first, then unlocked savings. Total displayed prominently. |
+| 49 | **Cashout maximum = cash + unlocked savings + accrued interest** | Cash drawn first, then unlocked savings. "Available to cash out" includes accrued interest (ticks up at penny precision, 2 decimals). |
 | 50 | **Cashout confirmation required** | Modal: "You're about to cash out $X. This will send an email. Proceed?" |
 | 51 | **Cashout minimum $1.00** | Cannot cash out less than $1. |
 | 52 | **Savings deposit minimum $1.00** | Cannot deposit less than $1. |
@@ -102,7 +102,7 @@
 | 55 | **Simple interest only** | Calculated on savings balance, paid into cash account. Not compound. |
 | 56 | **Savings max and interest rate in config** | Editable via admin UI. |
 | 57 | **Real-time ticking display** | 5-6 decimal places. |
-| 58 | **Interest ticker always visible in nav bar** | Small version in nav bar on all pages. Full version on bank page. |
+| 58 | **Nav bar ticker shows total available to cash out** | Ticks up at penny precision (2 decimals) as interest accrues. Bank page savings ticker remains interest-only (6 decimals). |
 | 59 | **Bank page layout** | Single page with all sections EXCEPT history on a separate tab. |
 | 60 | **Weekly report: last week only** | Shows last week's chore performance + allowance issued. Not scrollable through past weeks. |
 | 61 | **Historical stats** | Total cashed out, total interest earned. |

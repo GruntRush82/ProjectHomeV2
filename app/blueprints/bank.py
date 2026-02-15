@@ -148,6 +148,8 @@ def bank_ticker():
             "weekly_rate": current_app.config.get("INTEREST_RATE_WEEKLY", 0.05),
             "last_interest_credit": None,
             "accrued_interest": 0.0,
+            "cash_balance": 0.0,
+            "unlocked_savings": 0.0,
         })
     return jsonify(get_ticker_data(user_id))
 
