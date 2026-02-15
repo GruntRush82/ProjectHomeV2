@@ -102,7 +102,7 @@
 | 55 | **Simple interest only** | Calculated on savings balance, paid into cash account. Not compound. |
 | 56 | **Savings max and interest rate in config** | Editable via admin UI. |
 | 57 | **Real-time ticking display** | 5-6 decimal places. |
-| 58 | **Nav bar ticker shows total available to cash out** | Ticks up at penny precision (2 decimals) as interest accrues. Bank page savings ticker remains interest-only (6 decimals). |
+| 58 | **Nav bar ticker shows total available to cash out** | Ticks up at 6-decimal precision (cash + unlocked savings + accrued interest). Bank page "Available to cash out" ticks at penny precision (2 decimals). Bank page savings ticker remains interest-only (6 decimals). |
 | 59 | **Bank page layout** | Single page with all sections EXCEPT history on a separate tab. |
 | 60 | **Weekly report: last week only** | Shows last week's chore performance + allowance issued. Not scrollable through past weeks. |
 | 61 | **Historical stats** | Total cashed out, total interest earned. |

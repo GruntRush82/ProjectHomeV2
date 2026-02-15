@@ -4,7 +4,7 @@
 >
 > **Branch:** `v2` (created from `master`)
 >
-> **Last updated:** 2026-02-14 (Phase 3 completed)
+> **Last updated:** 2026-02-15 (Phase 3 complete + bug fixes)
 
 ---
 
@@ -19,10 +19,10 @@
 - Phased plan complete (below)
 - **Phase 1 COMPLETE** — project restructured, dark theme, auth/PIN, login screen, all V1 features working, 56 tests passing
 - **Phase 2 COMPLETE** — Calendar dashboard, Google Calendar integration, CalendarEvent model, streak tracking, 71 tests passing
-- **Phase 3 COMPLETE** — Bank & Savings: 4 models (BankAccount, SavingsDeposit, Transaction, SavingsGoal), 3 services (email, interest, allowance), bank blueprint (9 routes), bank.html with Alpine.js + crystal/gem visualization, nav bar interest ticker, weekly reset integration (allowance deposit, interest credit, IP expiry). 135 tests passing
+- **Phase 3 COMPLETE** — Bank & Savings: 4 models (BankAccount, SavingsDeposit, Transaction, SavingsGoal), 3 services (email, interest, allowance), bank blueprint (9 routes), bank.html with Alpine.js + vault/ice/coins visualization, nav bar interest ticker, weekly reset integration (allowance deposit, interest credit, IP expiry). Post-implementation fixes: CSS scoping bugs (chore grid cards, calendar layout), UTC timezone fix for interest ticker, vault redesign (gold coins behind melting ice). 135 tests passing
 
 **What's next:**
-- Phase 3 COMPLETE. Begin Phase 4: Missions (multiplication tables, piano practice)
+- Create Phase 4 implementation plan: Missions (multiplication tables, piano practice)
 - Phase 3 plan archived at `specs/PHASE3_IMPLEMENTATION_PLAN.md`
 
 ---
@@ -873,3 +873,5 @@ LILAH (Level 5 — Champion):
 | 2026-02-12 | Phase 2 polish: added `python-dotenv` loading in `run.py` (`.env` wasn't being read), Google Calendar now connected and pulling live events from `carlyfelker@gmail.com`. Confetti changed to fire only on full daily completion (not each chore). Updated CLAUDE.md with `.env` docs and Google Calendar setup notes. | Begin Phase 3: Bank & Savings. |
 | 2026-02-14 | Phase 3 sub-phase 3A COMPLETE: Created `app/models/bank.py` (BankAccount, SavingsDeposit, Transaction, SavingsGoal), registered in `models/__init__.py`, Alembic migration `62035d498409` applied. Created `specs/PHASE3_IMPLEMENTATION_PLAN.md` with full Phase 3 plan. 71 tests still passing. | Continue Phase 3: sub-phases 3B–3E. |
 | 2026-02-14 | **Phase 3 COMPLETE (3B–3E).** 3B: services (email.py, allowance.py, interest.py) + 21 unit tests (92 total). 3C: bank blueprint (9 routes, cashout, savings, goals, transactions, stats) + 37 API tests (129 total). 3D: bank.html template (Alpine.js, crystal/gem CSS visualization, cashout modal, transaction ledger), nav bar ticker wired in base.html. 3E: weekly reset integration (_process_allowance_and_interest, _expire_trusted_ips) + 6 reset tests. **135 tests all passing.** | Begin Phase 4: Missions. |
+| 2026-02-15 | **Phase 3 bug fixes & polish.** Fixed CSS scoping: Phase 2 calendar styles redefined `.chore-item` breaking chore grid cards (scoped to `.calendar-section .chore-item`); `section:last-of-type` min-width rule bled into calendar page (scoped to `#chore-list section:last-of-type`). Fixed interest ticker showing negative values: `datetime.utcnow().isoformat()` missing `Z` suffix caused JS to interpret UTC as local time. Redesigned savings visualization: replaced gem/crystal CSS with vault theme — gold coin emojis behind ice overlay that melts as unlock approaches, ice cracks at 30%/60%, warm glow when unlocked. Added `melt_percent` and `lock_total_seconds` to `SavingsDeposit.to_dict()`. Wrapped calendar streak banner + grid in `.calendar-wrapper` for proper alignment. All committed and pushed to v2. 135 tests still passing. | Ticker updates (below). |
+| 2026-02-15 | **Ticker updates.** Nav bar ticker now shows total available to cash out (cash + unlocked savings + accrued interest) at 6-decimal precision instead of interest-only. Bank page "Available to cash out" ticks up at penny precision (2 decimals) as interest accrues. Bank page savings ticker unchanged (interest-only, 6 decimals). Ticker API (`/api/bank/ticker`) now returns `cash_balance` and `unlocked_savings` alongside existing fields. Updated DECISIONS.md (#49, #58). 135 tests passing. | Create Phase 4 implementation plan (Missions: multiplication tables, piano practice). |

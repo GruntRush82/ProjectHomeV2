@@ -71,7 +71,7 @@ app/
 │   ├── js/scripts.js        # Chore/grocery frontend logic
 │   └── sounds/cheer.wav
 └── templates/
-    ├── base.html            # Base layout, bottom nav, Alpine.js idle timer, interest ticker
+    ├── base.html            # Base layout, bottom nav, Alpine.js idle timer, total-available ticker
     ├── bank.html            # Bank page: cashout, savings gems, goals, transaction history
     ├── calendar.html        # Daily calendar dashboard (served at /calendar)
     ├── login.html           # User selection cards (served at /)
@@ -140,7 +140,7 @@ tests/
 |-------|--------|---------|
 | `/bank` | GET | Render bank page (savings gems, cashout, goals) |
 | `/api/bank/overview` | GET | JSON: cash, savings, deposits, goal, stats |
-| `/api/bank/ticker` | GET | JSON: ticker data for nav bar interest display |
+| `/api/bank/ticker` | GET | JSON: ticker data (savings, rate, accrued interest, cash_balance, unlocked_savings) for nav bar total-available display |
 | `/bank/cashout` | POST | Cash out (cash first, then unlocked savings) + email |
 | `/bank/savings/deposit` | POST | Move cash to locked savings deposit |
 | `/bank/savings/withdraw/<id>` | POST | Withdraw unlocked savings deposit + email |
