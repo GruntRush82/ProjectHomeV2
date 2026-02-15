@@ -1503,3 +1503,441 @@ section:last-of-type {
 }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+
+/* ============================================================
+   Bank & Savings
+   ============================================================ */
+
+/* -- tab bar -- */
+.bank-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+/* -- cashout hero -- */
+.bank-cashout-section {
+  text-align: center;
+  padding: 28px 20px;
+  margin-bottom: 16px;
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--blur));
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 8px 32px rgba(0,0,0,0.2);
+}
+.bank-cashout-label {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.bank-cashout-amount {
+  font-size: 2.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--lime));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+.bank-cashout-btn {
+  margin-top: 14px;
+  padding: 12px 40px;
+  font-size: 1.05rem;
+}
+.bank-cashout-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* -- overview row -- */
+.bank-overview-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 600px) {
+  .bank-overview-row { grid-template-columns: 1fr; }
+}
+
+/* -- card -- */
+.bank-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--blur));
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 8px 32px rgba(0,0,0,0.2);
+  margin-bottom: 12px;
+}
+.bank-card-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.bank-card-amount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* -- interest ticker on bank page -- */
+.bank-interest-ticker {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--lime);
+  background: rgba(6, 214, 160, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-left: 8px;
+}
+
+/* -- projection -- */
+.bank-projection {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* -- deposit form -- */
+.bank-deposit-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.bank-deposit-input {
+  flex: 1;
+  max-width: 140px;
+}
+
+/* -- savings cap bar -- */
+.bank-savings-cap {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.bank-savings-cap .progress-track {
+  margin-top: 4px;
+}
+
+/* -- section titles -- */
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* -- gem grid -- */
+.bank-deposits-section {
+  margin-bottom: 16px;
+}
+.gem-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+/* -- individual gem -- */
+.gem-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+.gem-sm  { width: 80px; }
+.gem-md  { width: 100px; }
+.gem-lg  { width: 120px; }
+
+.gem-body {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.85;
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  overflow: hidden;
+}
+
+/* faceted interior */
+.gem-facets {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg,
+    rgba(0, 212, 255, 0.5) 0%,
+    rgba(131, 56, 236, 0.6) 35%,
+    rgba(6, 214, 160, 0.4) 65%,
+    rgba(0, 212, 255, 0.5) 100%
+  );
+}
+.gem-locked .gem-facets {
+  background: linear-gradient(160deg,
+    rgba(100, 140, 180, 0.4) 0%,
+    rgba(140, 160, 200, 0.5) 35%,
+    rgba(100, 130, 170, 0.3) 65%,
+    rgba(120, 150, 190, 0.4) 100%
+  );
+}
+
+/* frost overlay for locked */
+.gem-frost {
+  position: absolute;
+  inset: 0;
+  background: rgba(180, 210, 240, 0.35);
+  backdrop-filter: blur(3px);
+  animation: frost-shimmer 4s ease-in-out infinite;
+}
+@keyframes frost-shimmer {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.55; }
+}
+
+/* warm glow for unlocked */
+.gem-glow {
+  position: absolute;
+  inset: -4px;
+  background: radial-gradient(ellipse at center,
+    rgba(255, 215, 0, 0.35) 0%,
+    transparent 70%
+  );
+  animation: gem-pulse 2s ease-in-out infinite;
+}
+@keyframes gem-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.05); }
+}
+
+/* unlocked container glow */
+.gem-unlocked .gem-body {
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4));
+}
+.gem-locked .gem-body {
+  filter: drop-shadow(0 0 6px rgba(140, 180, 220, 0.25));
+}
+
+.gem-amount {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-top: 6px;
+}
+.gem-date {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+.gem-timer {
+  font-size: 0.72rem;
+  color: var(--blue);
+  font-weight: 600;
+  background: rgba(67, 97, 238, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+.gem-withdraw-btn {
+  margin-top: 6px;
+  padding: 4px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--gold), #ff8c00);
+  color: #111;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.gem-withdraw-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+/* -- goal display -- */
+.bank-goal-display {
+  margin-top: 8px;
+}
+.bank-goal-name {
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.bank-goal-progress {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.bank-goal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.bank-set-goal-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* -- stats -- */
+.bank-stats .section-title {
+  margin-bottom: 8px;
+}
+.bank-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+.bank-stat-row:last-child { border-bottom: none; }
+.bank-stat-label { color: var(--text-dim); font-size: 0.85rem; }
+.bank-stat-value { font-weight: 600; color: var(--text); }
+
+/* -- transaction ledger -- */
+.bank-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ledger-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.ledger-row:hover {
+  background: var(--bg-card-hi);
+}
+.ledger-icon {
+  font-size: 1.2rem;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.ledger-details {
+  flex: 1;
+  min-width: 0;
+}
+.ledger-desc {
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ledger-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.ledger-amount {
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.ledger-credit { color: var(--lime); }
+.ledger-debit  { color: var(--danger); }
+
+/* -- pagination -- */
+.bank-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.bank-page-info {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* -- modal -- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 24px 64px rgba(0,0,0,0.5);
+  text-align: center;
+}
+.modal-card h2 {
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+}
+.modal-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--lime));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 12px 0;
+}
+.modal-breakdown {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+.modal-note {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-bottom: 18px;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* -- flash message -- */
+.bank-flash {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 1001;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.bank-flash.success {
+  background: rgba(6, 214, 160, 0.15);
+  color: var(--lime);
+  box-shadow: inset 0 0 0 1px rgba(6, 214, 160, 0.3), 0 8px 24px rgba(0,0,0,0.3);
+}
+.bank-flash.error {
+  background: rgba(255, 77, 109, 0.15);
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 109, 0.3), 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* -- small ghost button -- */
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+}

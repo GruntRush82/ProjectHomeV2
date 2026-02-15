@@ -1,8 +1,8 @@
 """Chore routes — CRUD, archive, reset, move."""
 
-from datetime import date
+from datetime import date, datetime, timedelta
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from app.extensions import db
 from app.models.chore import Chore, ChoreHistory
@@ -69,6 +69,65 @@ def _update_streaks():
             user.streak_current = 0
 
 
+def _process_allowance_and_interest():
+    """Deposit allowance + credit interest for all users with bank accounts."""
+    from app.models.bank import BankAccount, Transaction
+    from app.services.allowance import calculate_allowance
+    from app.services.interest import credit_interest
+
+    now = datetime.utcnow()
+
+    for user in User.query.all():
+        user_chores = Chore.query.filter_by(user_id=user.id).all()
+        if not user_chores and not user.allowance:
+            continue
+
+        # Calculate allowance from the ARCHIVED chore state (history just written)
+        today = date.today()
+        history = ChoreHistory.query.filter_by(
+            username=user.username, date=today
+        ).all()
+        total = len(history)
+        completed = sum(1 for h in history if h.completed)
+
+        earned = calculate_allowance(total, completed, user.allowance or 0)
+
+        # Get or create bank account
+        account = BankAccount.query.filter_by(user_id=user.id).first()
+        if not account:
+            account = BankAccount(user_id=user.id, created_at=now)
+            db.session.add(account)
+            db.session.flush()
+
+        # Deposit allowance
+        if earned > 0:
+            account.cash_balance += earned
+            db.session.add(Transaction(
+                user_id=user.id,
+                type=Transaction.TYPE_ALLOWANCE,
+                amount=earned,
+                balance_after=round(account.cash_balance, 2),
+                description=f"Weekly allowance ({completed}/{total} chores, "
+                            f"{'full' if completed == total else 'half'})",
+                created_at=now,
+            ))
+
+        # Credit interest on savings
+        credit_interest(user.id)
+
+    db.session.commit()
+
+
+def _expire_trusted_ips():
+    """Remove TrustedIP entries older than TRUSTED_IP_EXPIRY_DAYS."""
+    from app.models.security import TrustedIP
+
+    expiry_days = current_app.config.get("TRUSTED_IP_EXPIRY_DAYS", 7)
+    cutoff = datetime.utcnow() - timedelta(days=expiry_days)
+    TrustedIP.query.filter(TrustedIP.trusted_at < cutoff).delete()
+    db.session.commit()
+
+
 def _weekly_archive(*, send_reports=True):
     """Archive current chores, reset, rotate, and update streaks."""
     today = date.today()
@@ -93,6 +152,10 @@ def _weekly_archive(*, send_reports=True):
 
     _rotate_chores_once()
     db.session.commit()
+
+    # ── Phase 3: Bank integration ────────────────────────────────
+    _process_allowance_and_interest()
+    _expire_trusted_ips()
 
     if send_reports:
         try:

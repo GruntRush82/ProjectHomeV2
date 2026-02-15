@@ -12,7 +12,7 @@ python run.py              # Starts on http://0.0.0.0:5000
 
 - **Branch:** `v2` (V1 stays live on `master`)
 - **Specs:** `specs/V2_PLAN.md` (phased plan + session handoff log), `specs/DECISIONS.md` (92 finalized decisions)
-- **Tests:** `pytest tests/` (71 tests, all passing as of Phase 2 completion)
+- **Tests:** `pytest tests/` (135 tests, all passing as of Phase 3 completion)
 - **DB:** SQLite at `instance/chores.db`. For a fresh DB: delete the file and run `python -c "from app import create_app; from app.extensions import db; app=create_app(); app.app_context().push(); db.create_all()"`
 - **Seed production chores:** Pull V1 DB from droplet, map user IDs, insert into V2 DB (see session handoff log in V2_PLAN.md)
 
@@ -45,19 +45,25 @@ app/
 ├── extensions.py            # db, migrate, socketio, scheduler
 ├── blueprints/
 │   ├── auth.py              # PIN, IP trust, login, sessions
+│   ├── bank.py              # Bank: cashout, savings, goals, transactions, stats, ticker
 │   ├── calendar_bp.py       # Calendar dashboard, events CRUD, today API
-│   ├── chores.py            # Chore CRUD, grid, archive, reset, streak tracking
+│   ├── chores.py            # Chore CRUD, grid, archive, reset, streak + bank integration
 │   ├── grocery.py           # Grocery list CRUD, email
 │   └── users.py             # User CRUD
 ├── models/
+│   ├── __init__.py          # Model imports for Alembic discovery
 │   ├── user.py              # User (username, email, allowance, xp, level, icon, theme...)
 │   ├── chore.py             # Chore, ChoreHistory
+│   ├── bank.py              # BankAccount, SavingsDeposit, Transaction, SavingsGoal
 │   ├── calendar.py          # CalendarEvent
 │   ├── grocery.py           # GroceryItem
 │   └── security.py          # TrustedIP, PinAttempt, AppConfig
 ├── services/
 │   ├── __init__.py
-│   └── google_cal.py        # Google Calendar API integration (service account, caching)
+│   ├── allowance.py         # Allowance tier calculation (100%→full, ≥50%→half, <50%→$0)
+│   ├── email.py             # Mailgun wrapper (V2-native, dry-run when keys missing)
+│   ├── google_cal.py        # Google Calendar API integration (service account, caching)
+│   └── interest.py          # Interest calculation, crediting, ticker data
 ├── scripts/
 │   └── migrate_v1_data.py   # One-time V1 data migration
 ├── static/
@@ -65,7 +71,8 @@ app/
 │   ├── js/scripts.js        # Chore/grocery frontend logic
 │   └── sounds/cheer.wav
 └── templates/
-    ├── base.html            # Base layout, bottom nav, Alpine.js idle timer
+    ├── base.html            # Base layout, bottom nav, Alpine.js idle timer, interest ticker
+    ├── bank.html            # Bank page: cashout, savings gems, goals, transaction history
     ├── calendar.html        # Daily calendar dashboard (served at /calendar)
     ├── login.html           # User selection cards (served at /)
     ├── pin.html             # PIN entry pad (served at /pin)
@@ -76,9 +83,13 @@ tests/
 ├── conftest.py              # Shared fixtures (app, db, client, auth_client, sample_users, etc.)
 ├── test_smoke.py            # 5 smoke tests
 ├── unit/
-│   └── test_streaks.py      # 4 streak tracking unit tests
+│   ├── test_allowance.py    # 10 allowance tier calculation tests
+│   ├── test_interest.py     # 11 interest calculation/crediting tests
+│   ├── test_streaks.py      # 4 streak tracking unit tests
+│   └── test_weekly_reset_bank.py  # 6 weekly reset bank integration tests
 └── api/
     ├── test_auth.py         # 10 auth/PIN/IP-trust tests
+    ├── test_bank_api.py     # 37 bank API tests (cashout, savings, goals, transactions)
     ├── test_calendar_api.py # 11 calendar API tests (today, events CRUD)
     ├── test_session.py      # 8 login/logout/session tests
     ├── test_chores_api.py   # Chore CRUD tests
@@ -102,6 +113,14 @@ tests/
 
 **PinAttempt:** id, ip_address, attempted_at, success
 
+**BankAccount:** id, user_id (unique FK), cash_balance, total_cashed_out, total_interest_earned, last_interest_credit, created_at
+
+**SavingsDeposit:** id, user_id (FK), amount, deposited_at, lock_until, interest_rate (snapshot), withdrawn, withdrawn_at. Properties: `is_locked`, `is_unlocked`
+
+**Transaction:** id, user_id (FK), type (allowance/cashout/savings_deposit/savings_withdrawal/interest/mission_reward), amount, balance_after, description, created_at. Class constants: TYPE_ALLOWANCE, TYPE_CASHOUT, TYPE_SAVINGS_DEPOSIT, TYPE_SAVINGS_WITHDRAWAL, TYPE_INTEREST, TYPE_MISSION_REWARD
+
+**SavingsGoal:** id, user_id (FK), name, target_amount, created_at, completed_at
+
 **AppConfig:** id, key (unique), value — runtime key/value store with `AppConfig.get(key)` / `AppConfig.set(key, value)`
 
 ## Routes
@@ -115,6 +134,19 @@ tests/
 | `/session/logout` | GET | End session, redirect to `/` |
 
 **App-wide before_request:** `require_trusted_ip` — redirects untrusted IPs to `/pin`. Skips `/static`, `/pin`, `/favicon.ico`. Bypassed entirely if no PIN hash is configured.
+
+### Bank (bank.py)
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/bank` | GET | Render bank page (savings gems, cashout, goals) |
+| `/api/bank/overview` | GET | JSON: cash, savings, deposits, goal, stats |
+| `/api/bank/ticker` | GET | JSON: ticker data for nav bar interest display |
+| `/bank/cashout` | POST | Cash out (cash first, then unlocked savings) + email |
+| `/bank/savings/deposit` | POST | Move cash to locked savings deposit |
+| `/bank/savings/withdraw/<id>` | POST | Withdraw unlocked savings deposit + email |
+| `/bank/savings/goal` | POST | Create/update savings goal |
+| `/bank/transactions` | GET | Paginated transaction history |
+| `/bank/stats` | GET | JSON: total cashed out, total interest earned |
 
 ### Calendar (calendar_bp.py)
 | Route | Method | Purpose |

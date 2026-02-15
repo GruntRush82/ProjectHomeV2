@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Bank — Felker Family Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="bankApp" x-init="loadData()" x-cloak>
+
+    <!-- Tab bar: Main / History -->
+    <div class="bank-tabs">
+        <button class="tab-btn" :class="{ active: tab === 'main' }" @click="tab = 'main'">Bank</button>
+        <button class="tab-btn" :class="{ active: tab === 'history' }" @click="tab = 'history'; loadHistory()">History</button>
+    </div>
+
+    <!-- ═══════ MAIN TAB ═══════ -->
+    <div x-show="tab === 'main'">
+
+        <!-- Cashout Section -->
+        <section class="bank-cashout-section">
+            <div class="bank-cashout-label">Available to cash out</div>
+            <div class="bank-cashout-amount" x-text="'$' + cashoutAvailable.toFixed(2)"></div>
+            <button class="btn-primary bank-cashout-btn"
+                    @click="showCashoutModal = true"
+                    :disabled="cashoutAvailable < cashoutMin">
+                Cash Out
+            </button>
+        </section>
+
+        <!-- Cash + Savings overview row -->
+        <div class="bank-overview-row">
+            <!-- Cash card -->
+            <section class="bank-card">
+                <div class="bank-card-label">Cash Balance</div>
+                <div class="bank-card-amount" x-text="'$' + cashBalance.toFixed(2)"></div>
+            </section>
+
+            <!-- Savings card -->
+            <section class="bank-card bank-savings-card">
+                <div class="bank-card-label">Savings</div>
+                <div class="bank-card-amount">
+                    <span x-text="'$' + totalSavings.toFixed(2)"></span>
+                    <span class="bank-interest-ticker" x-text="'+$' + accruedInterest.toFixed(6)"></span>
+                </div>
+                <div class="bank-projection" x-show="totalSavings > 0">
+                    Yearly projection: <span x-text="'$' + yearlyProjection.toFixed(2)"></span>
+                </div>
+
+                <!-- Deposit form -->
+                <div class="bank-deposit-form">
+                    <input type="number" x-model.number="depositAmount"
+                           :placeholder="'Min $' + depositMin.toFixed(2)"
+                           class="form-input bank-deposit-input"
+                           step="0.01" min="0">
+                    <button class="btn-primary" @click="deposit()"
+                            :disabled="!depositAmount || depositAmount < depositMin">
+                        Deposit to Savings
+                    </button>
+                </div>
+                <div class="bank-savings-cap" x-show="savingsMax > 0">
+                    <span x-text="'$' + totalSavings.toFixed(2) + ' / $' + savingsMax.toFixed(2)"></span>
+                    <div class="progress-track">
+                        <div class="progress-fill" :style="'width:' + Math.min(100, totalSavings/savingsMax*100) + '%'"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Savings Deposits (Crystal/Gem visualization) -->
+        <section class="bank-deposits-section" x-show="deposits.length > 0">
+            <h2 class="section-title">Savings Deposits</h2>
+            <div class="gem-grid">
+                <template x-for="dep in deposits" :key="dep.id">
+                    <div class="gem-container"
+                         :class="{
+                             'gem-locked': dep.locked,
+                             'gem-unlocked': !dep.locked,
+                             'gem-sm': dep.amount < 10,
+                             'gem-md': dep.amount >= 10 && dep.amount < 50,
+                             'gem-lg': dep.amount >= 50
+                         }">
+                        <div class="gem-body">
+                            <div class="gem-facets"></div>
+                            <div class="gem-frost" x-show="dep.locked"></div>
+                            <div class="gem-glow" x-show="!dep.locked"></div>
+                        </div>
+                        <div class="gem-amount" x-text="'$' + dep.amount.toFixed(2)"></div>
+                        <div class="gem-date" x-text="formatDate(dep.deposited_at)"></div>
+                        <div class="gem-timer" x-show="dep.locked" x-text="formatLock(dep.lock_seconds_remaining)"></div>
+                        <button class="gem-withdraw-btn" x-show="!dep.locked"
+                                @click="withdrawDeposit(dep.id)">
+                            Withdraw
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- Savings Goal -->
+        <section class="bank-card" x-show="goal || showGoalForm">
+            <div class="section-header">
+                <h2 class="section-title">Savings Goal</h2>
+                <button class="btn-ghost btn-sm" @click="showGoalForm = !showGoalForm"
+                        x-text="showGoalForm ? 'Cancel' : (goal ? 'Edit' : '+ Set Goal')"></button>
+            </div>
+
+            <!-- Goal progress -->
+            <div x-show="goal && !showGoalForm" class="bank-goal-display">
+                <div class="bank-goal-name" x-text="goal?.name"></div>
+                <div class="progress-track">
+                    <div class="progress-fill"
+                         :style="'width:' + Math.min(100, totalSavings / (goal?.target_amount || 1) * 100) + '%'"></div>
+                </div>
+                <div class="bank-goal-progress"
+                     x-text="'$' + totalSavings.toFixed(2) + ' / $' + (goal?.target_amount || 0).toFixed(2)"></div>
+            </div>
+
+            <!-- Goal form -->
+            <div x-show="showGoalForm" class="bank-goal-form">
+                <input type="text" x-model="goalName" placeholder="What are you saving for?"
+                       class="form-input" @keydown.enter="saveGoal()">
+                <input type="number" x-model.number="goalTarget" placeholder="Target amount"
+                       class="form-input" step="0.01" min="0" @keydown.enter="saveGoal()">
+                <button class="btn-primary" @click="saveGoal()"
+                        :disabled="!goalName.trim() || !goalTarget || goalTarget <= 0">Save Goal</button>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="bank-card bank-stats">
+            <h2 class="section-title">Stats</h2>
+            <div class="bank-stat-row">
+                <span class="bank-stat-label">Total Cashed Out</span>
+                <span class="bank-stat-value" x-text="'$' + totalCashedOut.toFixed(2)"></span>
+            </div>
+            <div class="bank-stat-row">
+                <span class="bank-stat-label">Total Interest Earned</span>
+                <span class="bank-stat-value" x-text="'$' + totalInterestEarned.toFixed(2)"></span>
+            </div>
+        </section>
+
+        <!-- Set Goal button (when no goal exists) -->
+        <button class="btn-ghost bank-set-goal-btn" x-show="!goal && !showGoalForm"
+                @click="showGoalForm = true">+ Set a Savings Goal</button>
+
+    </div>
+
+    <!-- ═══════ HISTORY TAB ═══════ -->
+    <div x-show="tab === 'history'">
+        <section class="bank-card">
+            <h2 class="section-title">Transaction History</h2>
+            <div x-show="transactions.length === 0" class="empty-state">No transactions yet</div>
+            <div class="bank-ledger">
+                <template x-for="txn in transactions" :key="txn.id">
+                    <div class="ledger-row" :class="'ledger-' + txn.type">
+                        <div class="ledger-icon" x-text="txnIcon(txn.type)"></div>
+                        <div class="ledger-details">
+                            <div class="ledger-desc" x-text="txn.description || txn.type"></div>
+                            <div class="ledger-date" x-text="formatDateTime(txn.created_at)"></div>
+                        </div>
+                        <div class="ledger-amount" :class="{ 'ledger-credit': txn.amount > 0, 'ledger-debit': txn.amount < 0 }"
+                             x-text="(txn.amount > 0 ? '+' : '') + '$' + Math.abs(txn.amount).toFixed(2)"></div>
+                    </div>
+                </template>
+            </div>
+            <!-- Pagination -->
+            <div class="bank-pagination" x-show="historyPages > 1">
+                <button class="btn-ghost btn-sm" @click="historyPage--; loadHistory()"
+                        :disabled="historyPage <= 1">&laquo; Prev</button>
+                <span class="bank-page-info" x-text="'Page ' + historyPage + ' of ' + historyPages"></span>
+                <button class="btn-ghost btn-sm" @click="historyPage++; loadHistory()"
+                        :disabled="historyPage >= historyPages">Next &raquo;</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════ CASHOUT MODAL ═══════ -->
+    <div class="modal-overlay" x-show="showCashoutModal" x-cloak @click.self="showCashoutModal = false">
+        <div class="modal-card">
+            <h2>Cash Out</h2>
+            <p class="modal-amount" x-text="'$' + cashoutAvailable.toFixed(2)"></p>
+            <div class="modal-breakdown" x-show="unlockedSavings > 0">
+                <div>Cash: <span x-text="'$' + cashBalance.toFixed(2)"></span></div>
+                <div>Unlocked savings: <span x-text="'$' + unlockedSavings.toFixed(2)"></span></div>
+            </div>
+            <p class="modal-note">This will send an email confirmation. Show it to collect your payout!</p>
+            <div class="modal-actions">
+                <button class="btn-ghost" @click="showCashoutModal = false">Cancel</button>
+                <button class="btn-primary" @click="doCashout()" :disabled="cashingOut">
+                    <span x-show="!cashingOut">Confirm Cash Out</span>
+                    <span x-show="cashingOut">Processing...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash message -->
+    <div class="bank-flash" x-show="flashMsg" x-cloak
+         x-transition:enter="flash-enter"
+         x-transition:leave="flash-leave"
+         :class="flashType"
+         x-text="flashMsg"></div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('bankApp', () => ({
+        tab: 'main',
+        // Account data
+        cashBalance: 0,
+        totalSavings: 0,
+        unlockedSavings: 0,
+        cashoutAvailable: 0,
+        yearlyProjection: 0,
+        totalCashedOut: 0,
+        totalInterestEarned: 0,
+        deposits: [],
+        goal: null,
+        // Config
+        savingsMax: 100,
+        depositMin: 1,
+        cashoutMin: 1,
+        // Interest ticker
+        accruedInterest: 0,
+        tickerSavings: 0,
+        tickerRate: 0.05,
+        tickerLastCredit: null,
+        tickerRaf: null,
+        // UI state
+        depositAmount: null,
+        showCashoutModal: false,
+        cashingOut: false,
+        showGoalForm: false,
+        goalName: '',
+        goalTarget: null,
+        flashMsg: '',
+        flashType: 'success',
+        // History
+        transactions: [],
+        historyPage: 1,
+        historyPages: 1,
+
+        async loadData() {
+            try {
+                const res = await fetch('/api/bank/overview');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                this.cashBalance = data.account.cash_balance;
+                this.totalSavings = data.total_savings;
+                this.unlockedSavings = data.unlocked_savings;
+                this.cashoutAvailable = data.cashout_available;
+                this.yearlyProjection = data.yearly_projection;
+                this.totalCashedOut = data.account.total_cashed_out;
+                this.totalInterestEarned = data.account.total_interest_earned;
+                this.deposits = data.deposits;
+                this.goal = data.goal;
+                this.savingsMax = data.savings_max;
+                this.depositMin = data.savings_deposit_min;
+                this.cashoutMin = data.cashout_min;
+
+                // Start interest ticker
+                this.startTicker();
+            } catch (e) {
+                console.error('Failed to load bank data:', e);
+            }
+        },
+
+        async startTicker() {
+            try {
+                const res = await fetch('/api/bank/ticker');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                this.tickerSavings = data.total_active_savings;
+                this.tickerRate = data.weekly_rate;
+                this.tickerLastCredit = data.last_interest_credit ? new Date(data.last_interest_credit) : new Date();
+                this.accruedInterest = data.accrued_interest;
+
+                // Start animation loop
+                if (this.tickerRaf) cancelAnimationFrame(this.tickerRaf);
+                this.tickInterest();
+
+                // Sync every 30 seconds
+                setInterval(() => this.syncTicker(), 30000);
+            } catch (e) {
+                console.error('Ticker init failed:', e);
+            }
+        },
+
+        tickInterest() {
+            if (this.tickerSavings > 0 && this.tickerLastCredit) {
+                const now = new Date();
+                const elapsed = (now - this.tickerLastCredit) / 1000;
+                const secondsPerWeek = 7 * 24 * 60 * 60;
+                this.accruedInterest = this.tickerSavings * this.tickerRate * (elapsed / secondsPerWeek);
+            }
+            this.tickerRaf = requestAnimationFrame(() => this.tickInterest());
+        },
+
+        async syncTicker() {
+            try {
+                const res = await fetch('/api/bank/ticker');
+                if (!res.ok) return;
+                const data = await res.json();
+                this.tickerSavings = data.total_active_savings;
+                this.tickerRate = data.weekly_rate;
+                this.tickerLastCredit = data.last_interest_credit ? new Date(data.last_interest_credit) : new Date();
+            } catch (e) {}
+        },
+
+        async deposit() {
+            if (!this.depositAmount || this.depositAmount < this.depositMin) return;
+            try {
+                const res = await fetch('/bank/savings/deposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: this.depositAmount })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+
+                this.depositAmount = null;
+                this.flash('Deposited to savings!', 'success');
+                this.loadData();
+            } catch (e) {
+                this.flash('Deposit failed', 'error');
+            }
+        },
+
+        async doCashout() {
+            this.cashingOut = true;
+            try {
+                const res = await fetch('/bank/cashout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); this.cashingOut = false; return; }
+
+                this.showCashoutModal = false;
+                this.cashingOut = false;
+                this.flash('Cashed out $' + data.cashed_out.toFixed(2) + '! Check your email.', 'success');
+
+                // Celebration
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 300, spread: 140, origin: { y: 0.4 } });
+                }
+                this.loadData();
+            } catch (e) {
+                this.cashingOut = false;
+                this.flash('Cashout failed', 'error');
+            }
+        },
+
+        async withdrawDeposit(depositId) {
+            try {
+                const res = await fetch(`/bank/savings/withdraw/${depositId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+
+                this.flash('Withdrew $' + data.withdrawn.toFixed(2) + '! Check your email.', 'success');
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+                }
+                this.loadData();
+            } catch (e) {
+                this.flash('Withdrawal failed', 'error');
+            }
+        },
+
+        async saveGoal() {
+            if (!this.goalName.trim() || !this.goalTarget || this.goalTarget <= 0) return;
+            try {
+                const res = await fetch('/bank/savings/goal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: this.goalName.trim(), target_amount: this.goalTarget })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+
+                this.goal = data;
+                this.showGoalForm = false;
+                this.goalName = '';
+                this.goalTarget = null;
+                this.flash('Goal saved!', 'success');
+            } catch (e) {
+                this.flash('Failed to save goal', 'error');
+            }
+        },
+
+        async loadHistory() {
+            try {
+                const res = await fetch(`/bank/transactions?page=${this.historyPage}&per_page=20`);
+                if (!res.ok) return;
+                const data = await res.json();
+                this.transactions = data.transactions;
+                this.historyPages = data.pages;
+            } catch (e) {
+                console.error('Failed to load history:', e);
+            }
+        },
+
+        flash(msg, type = 'success') {
+            this.flashMsg = msg;
+            this.flashType = type;
+            setTimeout(() => { this.flashMsg = ''; }, 4000);
+        },
+
+        txnIcon(type) {
+            const icons = {
+                allowance: '\u{1F4B5}',
+                cashout: '\u{1F4B8}',
+                savings_deposit: '\u{1F48E}',
+                savings_withdrawal: '\u{1F4A0}',
+                interest: '\u{1F4C8}',
+                mission_reward: '\u{1F3C6}',
+            };
+            return icons[type] || '\u{1F4B0}';
+        },
+
+        formatDate(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        },
+
+        formatDateTime(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        },
+
+        formatLock(seconds) {
+            if (!seconds || seconds <= 0) return 'Unlocked!';
+            const days = Math.floor(seconds / 86400);
+            const hrs = Math.floor((seconds % 86400) / 3600);
+            if (days > 0) return days + 'd ' + hrs + 'h';
+            const mins = Math.floor((seconds % 3600) / 60);
+            return hrs + 'h ' + mins + 'm';
+        }
+    }));
+});
+</script>
+{% endblock %}

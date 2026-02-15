@@ -1,10 +1,10 @@
 # Project Home V2 — Master Plan
 
-> **Status:** Phase 2 COMPLETE — Ready for Phase 3 (Bank & Savings).
+> **Status:** Phase 3 COMPLETE — Bank & Savings fully implemented. 135 tests passing.
 >
 > **Branch:** `v2` (created from `master`)
 >
-> **Last updated:** 2026-02-11 (Phase 2 completed)
+> **Last updated:** 2026-02-14 (Phase 3 completed)
 
 ---
 
@@ -19,9 +19,11 @@
 - Phased plan complete (below)
 - **Phase 1 COMPLETE** — project restructured, dark theme, auth/PIN, login screen, all V1 features working, 56 tests passing
 - **Phase 2 COMPLETE** — Calendar dashboard, Google Calendar integration, CalendarEvent model, streak tracking, 71 tests passing
+- **Phase 3 COMPLETE** — Bank & Savings: 4 models (BankAccount, SavingsDeposit, Transaction, SavingsGoal), 3 services (email, interest, allowance), bank blueprint (9 routes), bank.html with Alpine.js + crystal/gem visualization, nav bar interest ticker, weekly reset integration (allowance deposit, interest credit, IP expiry). 135 tests passing
 
 **What's next:**
-- Begin Phase 3: Bank & Savings (BankAccount model, transactions, interest ticker, savings goals)
+- Phase 3 COMPLETE. Begin Phase 4: Missions (multiplication tables, piano practice)
+- Phase 3 plan archived at `specs/PHASE3_IMPLEMENTATION_PLAN.md`
 
 ---
 
@@ -869,3 +871,5 @@ LILAH (Level 5 — Champion):
 | 2026-02-11 | Phase 1 polish: fixed gradient border artifacts on avatars/buttons (replaced semi-transparent `border` with `box-shadow: inset`), added CSS convention note, created V2-specific CLAUDE.md. | Begin Phase 2. |
 | 2026-02-11 | Phase 2 COMPLETE. All sub-tasks done: 2.1 Google Calendar service (`app/services/google_cal.py`) with in-memory cache, graceful degradation; 2.2 CalendarEvent model; 2.3 Calendar blueprint + daily dashboard template with Alpine.js (chore check-off, events CRUD, confetti, progress bar); 2.4 Streak tracking in weekly reset (`_update_streaks()`). Post-login redirect changed from chores to calendar. Updated `.env` with Mailgun + Google Calendar config. 71 tests all passing (15 new: 11 calendar API + 4 streak unit tests). | Set `GOOGLE_CALENDAR_ID` in `.env`, share calendar with service account email. Begin Phase 3: Bank & Savings. |
 | 2026-02-12 | Phase 2 polish: added `python-dotenv` loading in `run.py` (`.env` wasn't being read), Google Calendar now connected and pulling live events from `carlyfelker@gmail.com`. Confetti changed to fire only on full daily completion (not each chore). Updated CLAUDE.md with `.env` docs and Google Calendar setup notes. | Begin Phase 3: Bank & Savings. |
+| 2026-02-14 | Phase 3 sub-phase 3A COMPLETE: Created `app/models/bank.py` (BankAccount, SavingsDeposit, Transaction, SavingsGoal), registered in `models/__init__.py`, Alembic migration `62035d498409` applied. Created `specs/PHASE3_IMPLEMENTATION_PLAN.md` with full Phase 3 plan. 71 tests still passing. | Continue Phase 3: sub-phases 3B–3E. |
+| 2026-02-14 | **Phase 3 COMPLETE (3B–3E).** 3B: services (email.py, allowance.py, interest.py) + 21 unit tests (92 total). 3C: bank blueprint (9 routes, cashout, savings, goals, transactions, stats) + 37 API tests (129 total). 3D: bank.html template (Alpine.js, crystal/gem CSS visualization, cashout modal, transaction ledger), nav bar ticker wired in base.html. 3E: weekly reset integration (_process_allowance_and_interest, _expire_trusted_ips) + 6 reset tests. **135 tests all passing.** | Begin Phase 4: Missions. |

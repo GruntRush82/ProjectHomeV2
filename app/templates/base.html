@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.1.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.2.0">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% block head %}{% endblock %}
 </head>
@@ -76,6 +76,10 @@
     document.addEventListener('alpine:init', () => {
         Alpine.data('app', () => ({
             tickerDisplay: '+$0.000000',
+            _tickerSavings: 0,
+            _tickerRate: 0.05,
+            _tickerLastCredit: null,
+            _tickerRaf: null,
             idleTimer: null,
             idleTimeout: {{ idle_timeout_ms|default(300000) }},
 
@@ -83,6 +87,44 @@
                 this.resetIdleTimer();
                 document.addEventListener('pointerdown', () => this.resetIdleTimer());
                 document.addEventListener('keydown', () => this.resetIdleTimer());
+
+                {% if current_user %}
+                this._startNavTicker();
+                setInterval(() => this._syncNavTicker(), 30000);
+                {% endif %}
+            },
+
+            async _startNavTicker() {
+                try {
+                    const res = await fetch('/api/bank/ticker');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    this._tickerSavings = data.total_active_savings;
+                    this._tickerRate = data.weekly_rate;
+                    this._tickerLastCredit = data.last_interest_credit ? new Date(data.last_interest_credit) : null;
+                    if (this._tickerRaf) cancelAnimationFrame(this._tickerRaf);
+                    this._tickNavTicker();
+                } catch (e) {}
+            },
+
+            _tickNavTicker() {
+                if (this._tickerSavings > 0 && this._tickerLastCredit) {
+                    const elapsed = (new Date() - this._tickerLastCredit) / 1000;
+                    const interest = this._tickerSavings * this._tickerRate * (elapsed / (7*24*60*60));
+                    this.tickerDisplay = '+$' + interest.toFixed(6);
+                }
+                this._tickerRaf = requestAnimationFrame(() => this._tickNavTicker());
+            },
+
+            async _syncNavTicker() {
+                try {
+                    const res = await fetch('/api/bank/ticker');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    this._tickerSavings = data.total_active_savings;
+                    this._tickerRate = data.weekly_rate;
+                    this._tickerLastCredit = data.last_interest_credit ? new Date(data.last_interest_credit) : null;
+                } catch (e) {}
             },
 
             resetIdleTimer() {
