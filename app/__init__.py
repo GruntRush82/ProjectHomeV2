@@ -55,6 +55,7 @@ def _register_blueprints(flask_app):
     from app.blueprints.grocery import grocery_bp
     from app.blueprints.users import users_bp
     from app.blueprints.bank import bank_bp
+    from app.blueprints.missions import missions_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(calendar_bp)
@@ -62,6 +63,7 @@ def _register_blueprints(flask_app):
     flask_app.register_blueprint(grocery_bp)
     flask_app.register_blueprint(users_bp)
     flask_app.register_blueprint(bank_bp)
+    flask_app.register_blueprint(missions_bp)
 
 
 def _register_auth_hook(flask_app):

@@ -12,7 +12,7 @@ python run.py              # Starts on http://0.0.0.0:5000
 
 - **Branch:** `v2` (V1 stays live on `master`)
 - **Specs:** `specs/V2_PLAN.md` (phased plan + session handoff log), `specs/DECISIONS.md` (92 finalized decisions)
-- **Tests:** `pytest tests/` (135 tests, all passing as of Phase 3 completion)
+- **Tests:** `pytest tests/` (208 tests, all passing as of Phase 4 completion)
 - **DB:** SQLite at `instance/chores.db`. For a fresh DB: delete the file and run `python -c "from app import create_app; from app.extensions import db; app=create_app(); app.app_context().push(); db.create_all()"`
 - **Seed production chores:** Pull V1 DB from droplet, map user IDs, insert into V2 DB (see session handoff log in V2_PLAN.md)
 
@@ -49,6 +49,7 @@ app/
 │   ├── calendar_bp.py       # Calendar dashboard, events CRUD, today API
 │   ├── chores.py            # Chore CRUD, grid, archive, reset, streak + bank integration
 │   ├── grocery.py           # Grocery list CRUD, email
+│   ├── missions.py          # Mission hub, training, testing, notifications, admin assign/approve
 │   └── users.py             # User CRUD
 ├── models/
 │   ├── __init__.py          # Model imports for Alembic discovery
@@ -57,15 +58,22 @@ app/
 │   ├── bank.py              # BankAccount, SavingsDeposit, Transaction, SavingsGoal
 │   ├── calendar.py          # CalendarEvent
 │   ├── grocery.py           # GroceryItem
+│   ├── mission.py           # Mission, MissionAssignment, MissionProgress
 │   └── security.py          # TrustedIP, PinAttempt, AppConfig
 ├── services/
 │   ├── __init__.py
 │   ├── allowance.py         # Allowance tier calculation (100%→full, ≥50%→half, <50%→$0)
 │   ├── email.py             # Mailgun wrapper (V2-native, dry-run when keys missing)
 │   ├── google_cal.py        # Google Calendar API integration (service account, caching)
-│   └── interest.py          # Interest calculation, crediting, ticker data
+│   ├── interest.py          # Interest calculation, crediting, ticker data
+│   └── missions/            # Mission handler framework
+│       ├── __init__.py      # Handler registry (MISSION_HANDLERS dict)
+│       ├── base.py          # BaseMissionHandler ABC
+│       ├── multiplication.py # Adaptive training, 3-level testing, mnemonic hints
+│       └── piano.py         # Simple "I did it" → admin approval flow
 ├── scripts/
-│   └── migrate_v1_data.py   # One-time V1 data migration
+│   ├── migrate_v1_data.py   # One-time V1 data migration
+│   └── seed_missions.py     # Seed Multiplication Master + Piano Performance definitions
 ├── static/
 │   ├── css/style.css        # Dark neon glassmorphic theme
 │   ├── js/scripts.js        # Chore/grocery frontend logic
@@ -75,6 +83,8 @@ app/
     ├── bank.html            # Bank page: cashout, savings gems, goals, transaction history
     ├── calendar.html        # Daily calendar dashboard (served at /calendar)
     ├── login.html           # User selection cards (served at /)
+    ├── missions.html        # Mission hub: training, testing, numpad, celebration (served at /missions)
+    ├── admin_missions.html  # Admin: assign missions, approve/reject piano (served at /admin/missions)
     ├── pin.html             # PIN entry pad (served at /pin)
     └── chore_tracker.html   # Chore grid SPA (served at /chores-page)
 
@@ -85,12 +95,17 @@ tests/
 ├── unit/
 │   ├── test_allowance.py    # 10 allowance tier calculation tests
 │   ├── test_interest.py     # 11 interest calculation/crediting tests
+│   ├── test_mission_models.py     # 9 mission model tests
+│   ├── test_multiplication_service.py  # 20 multiplication handler tests
+│   ├── test_piano_service.py      # 7 piano handler + registry tests
 │   ├── test_streaks.py      # 4 streak tracking unit tests
 │   └── test_weekly_reset_bank.py  # 6 weekly reset bank integration tests
 └── api/
     ├── test_auth.py         # 10 auth/PIN/IP-trust tests
     ├── test_bank_api.py     # 37 bank API tests (cashout, savings, goals, transactions)
     ├── test_calendar_api.py # 11 calendar API tests (today, events CRUD)
+    ├── test_missions_api.py # 25 mission API tests (auth, CRUD, state, notifications, admin)
+    ├── test_mission_integration.py  # 8 end-to-end mission flow tests
     ├── test_session.py      # 8 login/logout/session tests
     ├── test_chores_api.py   # Chore CRUD tests
     ├── test_grocery_api.py  # Grocery CRUD tests
@@ -122,6 +137,12 @@ tests/
 **SavingsGoal:** id, user_id (FK), name, target_amount, created_at, completed_at
 
 **AppConfig:** id, key (unique), value — runtime key/value store with `AppConfig.get(key)` / `AppConfig.set(key, value)`
+
+**Mission:** id, title, description, mission_type (multiplication/piano), config (JSON), reward_cash, reward_icon, created_at
+
+**MissionAssignment:** id, mission_id (FK), user_id (FK), state (assigned/training/testing/completed/failed/pending_approval), current_level (0-3), notified, assigned_at, started_at, completed_at. State constants: STATE_ASSIGNED, STATE_TRAINING, STATE_TESTING, STATE_COMPLETED, STATE_FAILED, STATE_PENDING_APPROVAL
+
+**MissionProgress:** id, assignment_id (FK), session_type (training/test), data (JSON), score, duration_seconds, created_at
 
 ## Routes
 
@@ -175,6 +196,25 @@ tests/
 | `/grocery/<id>` | DELETE | Remove item |
 | `/grocery/clear` | DELETE | Clear all |
 | `/grocery/send` | POST | Email list via Mailgun |
+
+### Missions (missions.py)
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/missions` | GET | Render missions hub page |
+| `/api/missions` | GET | List user's assignments (active + completed) |
+| `/api/missions/<id>/progress` | GET | Progress summary for assignment |
+| `/missions/<id>/start` | POST | Transition assigned → training |
+| `/api/missions/<id>/train` | GET | Get training session (20 questions) |
+| `/missions/<id>/train` | POST | Submit training results |
+| `/api/missions/<id>/test` | GET | Get test for next level |
+| `/missions/<id>/test` | POST | Submit test results (+ grant reward if L3 pass) |
+| `/api/missions/notifications` | GET | Unnotified assignments |
+| `/api/missions/notifications/dismiss` | POST | Mark notifications as seen |
+| `/admin/missions` | GET | Render admin missions page |
+| `/api/admin/missions` | GET | List all missions, assignments, users |
+| `/api/admin/missions/assign` | POST | Assign mission to user |
+| `/api/admin/missions/<id>/approve` | POST | Approve pending piano mission |
+| `/api/admin/missions/<id>/reject` | POST | Reject → back to training |
 
 ### Users (users.py)
 | Route | Method | Purpose |

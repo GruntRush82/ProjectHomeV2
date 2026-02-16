@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}Missions — Felker Family Hub{% endblock %}
+
+{% block content %}
+<div x-data="missionsApp()" x-init="init()" class="missions-container">
+
+  <!-- Hub View -->
+  <div x-show="view === 'hub'" class="missions-hub">
+    <h1 class="page-title">Missions</h1>
+
+    {% if current_user and current_user.is_admin %}
+    <div style="text-align:center; margin-bottom:20px;">
+      <a href="/admin/missions" class="btn btn-secondary">Manage & Assign Missions</a>
+    </div>
+    {% endif %}
+
+    <!-- Active Missions -->
+    <template x-if="activeMissions.length > 0">
+      <div class="missions-section">
+        <h2 class="section-title">Active Missions</h2>
+        <div class="mission-cards">
+          <template x-for="mission in activeMissions" :key="mission.id">
+            <div class="mission-card" :class="'state-' + mission.state">
+              <div class="mission-card-header">
+                <span class="mission-title" x-text="mission.mission.title"></span>
+                <span class="state-badge" :class="'badge-' + mission.state" x-text="formatState(mission.state)"></span>
+              </div>
+              <p class="mission-desc" x-text="mission.mission.description"></p>
+
+              <!-- Level progress bar (multiplication) -->
+              <template x-if="mission.mission.mission_type === 'multiplication'">
+                <div class="level-progress">
+                  <div class="level-bar">
+                    <div class="level-fill" :style="'width:' + (mission.current_level / 3 * 100) + '%'"></div>
+                  </div>
+                  <span class="level-label" x-text="'Level ' + mission.current_level + ' / 3'"></span>
+                </div>
+              </template>
+
+              <!-- Action buttons -->
+              <div class="mission-actions">
+                <template x-if="mission.state === 'assigned'">
+                  <button class="btn btn-accent" @click="startMission(mission.id)">Start Mission</button>
+                </template>
+                <template x-if="mission.state === 'training' || mission.state === 'failed'">
+                  <div class="action-group">
+                    <button class="btn btn-accent" @click="goToTraining(mission)">Train</button>
+                    <button class="btn btn-secondary" @click="goToTest(mission)">Take Test</button>
+                  </div>
+                </template>
+                <template x-if="mission.state === 'pending_approval'">
+                  <span class="pending-text">Awaiting admin approval...</span>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- Completed Missions -->
+    <template x-if="completedMissions.length > 0">
+      <div class="missions-section">
+        <h2 class="section-title">Completed</h2>
+        <div class="mission-cards">
+          <template x-for="mission in completedMissions" :key="mission.id">
+            <div class="mission-card state-completed">
+              <div class="mission-card-header">
+                <span class="mission-title" x-text="mission.mission.title"></span>
+                <span class="state-badge badge-completed">Completed!</span>
+              </div>
+              <p class="mission-desc" x-text="mission.mission.description"></p>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- Empty State -->
+    <template x-if="activeMissions.length === 0 && completedMissions.length === 0">
+      <div class="empty-state">
+        <div class="empty-icon">&#127919;</div>
+        <h2>No Missions Yet</h2>
+        <p>Ask your parent to assign you a mission!</p>
+      </div>
+    </template>
+  </div>
+
+  <!-- Training View (Multiplication) -->
+  <div x-show="view === 'training'" class="training-view">
+    <div class="training-header">
+      <button class="btn btn-back" @click="view = 'hub'; loadMissions()">&#8592; Back</button>
+      <h2 x-text="currentMission?.mission?.title + ' — Training'"></h2>
+    </div>
+
+    <!-- Question display -->
+    <template x-if="!trainingComplete">
+      <div class="training-question-area">
+        <div class="question-counter" x-text="'Question ' + (currentQuestionIndex + 1) + ' / ' + trainingQuestions.length"></div>
+        <div class="question-display">
+          <span class="question-text" x-text="currentQuestion?.a + ' × ' + currentQuestion?.b + ' = ?'"></span>
+        </div>
+
+        <!-- Feedback area -->
+        <div class="feedback-area" x-show="feedback" :class="feedbackClass">
+          <p x-text="feedback"></p>
+        </div>
+
+        <!-- Numpad -->
+        <div class="numpad-input">
+          <div class="numpad-display" x-text="numpadValue || '...'"></div>
+          <div class="numpad-grid">
+            <template x-for="n in [1,2,3,4,5,6,7,8,9]" :key="n">
+              <button class="numpad-btn" @click="numpadPress(n)" x-text="n"></button>
+            </template>
+            <button class="numpad-btn numpad-clear" @click="numpadClear()">C</button>
+            <button class="numpad-btn" @click="numpadPress(0)">0</button>
+            <button class="numpad-btn numpad-submit" @click="submitAnswer()">&#10003;</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- End-of-session screen -->
+    <template x-if="trainingComplete">
+      <div class="training-results">
+        <h2>Session Complete!</h2>
+        <div class="result-score">
+          <span class="score-number" x-text="trainingScore"></span>
+          <span class="score-label"> / <span x-text="trainingTotal"></span> correct</span>
+        </div>
+        <div class="result-stats">
+          <div class="stat-item">
+            <span class="stat-value" x-text="masteredCount"></span>
+            <span class="stat-label">Facts Mastered</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" x-text="weakCount"></span>
+            <span class="stat-label">Need Practice</span>
+          </div>
+        </div>
+        <p class="motivational-message" x-text="getMotivationalMessage()"></p>
+        <div class="result-actions">
+          <button class="btn btn-accent" @click="startTrainingSession()">Train Again</button>
+          <button class="btn btn-secondary" @click="view = 'hub'; loadMissions()">Back to Hub</button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Test View (Multiplication) -->
+  <div x-show="view === 'test'" class="test-view">
+    <div class="test-header">
+      <button class="btn btn-back" @click="view = 'hub'; loadMissions()">&#8592; Back</button>
+      <h2 x-text="'Level ' + testLevel + ' Test'"></h2>
+      <template x-if="testTimeLimit">
+        <div class="test-timer" :class="{'timer-warning': testTimeRemaining <= 10}">
+          <span x-text="formatTime(testTimeRemaining)"></span>
+        </div>
+      </template>
+    </div>
+
+    <template x-if="!testComplete">
+      <div class="test-question-area">
+        <div class="test-progress">
+          <span x-text="'Question ' + (testQuestionIndex + 1) + ' / ' + testQuestions.length"></span>
+          <span class="correct-count" x-text="testCorrectCount + ' correct'"></span>
+        </div>
+        <div class="question-display">
+          <span class="question-text" x-text="testCurrentQuestion?.a + ' × ' + testCurrentQuestion?.b + ' = ?'"></span>
+        </div>
+
+        <!-- Numpad -->
+        <div class="numpad-input">
+          <div class="numpad-display" x-text="numpadValue || '...'"></div>
+          <div class="numpad-grid">
+            <template x-for="n in [1,2,3,4,5,6,7,8,9]" :key="n">
+              <button class="numpad-btn" @click="numpadPress(n)" x-text="n"></button>
+            </template>
+            <button class="numpad-btn numpad-clear" @click="numpadClear()">C</button>
+            <button class="numpad-btn" @click="numpadPress(0)">0</button>
+            <button class="numpad-btn numpad-submit" @click="submitTestAnswer()">&#10003;</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Test Result -->
+    <template x-if="testComplete">
+      <div class="test-results">
+        <template x-if="testPassed">
+          <div class="test-passed">
+            <h2>Level <span x-text="testLevel"></span> Passed!</h2>
+            <p class="score-display" x-text="testCorrectCount + ' / ' + testQuestions.length + ' correct'"></p>
+            <template x-if="testLevel < 3">
+              <p>Ready for the next level!</p>
+            </template>
+          </div>
+        </template>
+        <template x-if="!testPassed">
+          <div class="test-failed">
+            <h2>Not quite!</h2>
+            <p class="score-display" x-text="testCorrectCount + ' / ' + testQuestions.length + ' correct'"></p>
+            <p x-text="testFailReason"></p>
+            <p>Keep training — you'll get it!</p>
+          </div>
+        </template>
+        <div class="result-actions">
+          <button class="btn btn-accent" @click="view = 'hub'; loadMissions()">Back to Hub</button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Piano View -->
+  <div x-show="view === 'piano'" class="piano-view">
+    <div class="piano-header">
+      <button class="btn btn-back" @click="view = 'hub'; loadMissions()">&#8592; Back</button>
+      <h2 x-text="currentMission?.mission?.title"></h2>
+    </div>
+
+    <div class="piano-content">
+      <div class="piece-name" x-text="currentMission?.mission?.config?.piece_name || 'Your piece'"></div>
+      <p class="piece-desc" x-text="currentMission?.mission?.config?.description || 'Practice and perform!'"></p>
+
+      <template x-if="currentMission?.state !== 'pending_approval' && currentMission?.state !== 'completed'">
+        <button class="btn btn-accent btn-large" @click="submitPianoPerformance()">I Did It!</button>
+      </template>
+      <template x-if="currentMission?.state === 'pending_approval'">
+        <div class="pending-status">
+          <span class="pending-icon">&#9203;</span>
+          <p>Awaiting admin approval...</p>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Celebration Overlay -->
+  <div x-show="showCelebration" x-transition class="celebration-overlay" @click="dismissCelebration()">
+    <div class="celebration-content" @click.stop>
+      <div class="celebration-icon" :class="'icon-' + celebrationIcon">
+        <template x-if="celebrationIcon === 'lightning_brain'">
+          <span class="mission-icon-display">&#9889;&#129504;</span>
+        </template>
+        <template x-if="celebrationIcon === 'golden_music_note'">
+          <span class="mission-icon-display">&#127925;</span>
+        </template>
+      </div>
+      <h1 class="celebration-title">MISSION COMPLETE!</h1>
+      <p class="celebration-reward">$<span x-text="celebrationCash?.toFixed(2)"></span> added to your bank!</p>
+      <button class="btn btn-accent" @click="dismissCelebration()">Awesome!</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function missionsApp() {
+  return {
+    view: 'hub',
+    activeMissions: [],
+    completedMissions: [],
+    currentMission: null,
+
+    // Training state
+    trainingQuestions: [],
+    trainingAnswers: {},
+    currentQuestionIndex: 0,
+    trainingComplete: false,
+    trainingScore: 0,
+    trainingTotal: 0,
+    masteredCount: 0,
+    weakCount: 0,
+    feedback: '',
+    feedbackClass: '',
+    wrongAttempts: 0,
+
+    // Numpad
+    numpadValue: '',
+
+    // Test state
+    testLevel: 1,
+    testQuestions: [],
+    testQuestionIndex: 0,
+    testCorrectCount: 0,
+    testComplete: false,
+    testPassed: false,
+    testFailReason: '',
+    testTimeLimit: null,
+    testTimeRemaining: 0,
+    testTimer: null,
+    testStartTime: null,
+    testAnswers: [],
+
+    // Celebration
+    showCelebration: false,
+    celebrationIcon: '',
+    celebrationCash: 0,
+
+    async init() {
+      await this.loadMissions();
+    },
+
+    async loadMissions() {
+      try {
+        const resp = await fetch('/api/missions');
+        const data = await resp.json();
+        this.activeMissions = data.active || [];
+        this.completedMissions = data.completed || [];
+      } catch (e) {
+        console.error('Failed to load missions:', e);
+      }
+    },
+
+    formatState(state) {
+      const map = {
+        'assigned': 'New',
+        'training': 'Training',
+        'testing': 'Testing',
+        'failed': 'Try Again',
+        'pending_approval': 'Pending',
+        'completed': 'Complete',
+      };
+      return map[state] || state;
+    },
+
+    async startMission(id) {
+      try {
+        const resp = await fetch(`/missions/${id}/start`, { method: 'POST' });
+        if (resp.ok) await this.loadMissions();
+      } catch (e) {
+        console.error('Failed to start mission:', e);
+      }
+    },
+
+    goToTraining(mission) {
+      this.currentMission = mission;
+      if (mission.mission.mission_type === 'piano') {
+        this.view = 'piano';
+      } else {
+        this.startTrainingSession();
+      }
+    },
+
+    async startTrainingSession() {
+      this.view = 'training';
+      this.trainingComplete = false;
+      this.currentQuestionIndex = 0;
+      this.trainingScore = 0;
+      this.numpadValue = '';
+      this.feedback = '';
+      this.wrongAttempts = 0;
+      this.trainingResults = [];
+
+      try {
+        const resp = await fetch(`/api/missions/${this.currentMission.id}/train`);
+        const data = await resp.json();
+        this.trainingQuestions = data.questions;
+        this.trainingAnswers = data.answers;
+        this.trainingTotal = data.total;
+        this.masteredCount = data.mastered_count;
+        this.weakCount = data.weak_count;
+      } catch (e) {
+        console.error('Failed to get training session:', e);
+      }
+    },
+
+    get currentQuestion() {
+      return this.trainingQuestions[this.currentQuestionIndex];
+    },
+
+    numpadPress(n) {
+      if (this.numpadValue.length < 3) {
+        this.numpadValue += String(n);
+      }
+    },
+
+    numpadClear() {
+      this.numpadValue = '';
+    },
+
+    submitAnswer() {
+      if (!this.numpadValue) return;
+      const q = this.currentQuestion;
+      if (!q) return;
+
+      const userAnswer = parseInt(this.numpadValue);
+      const correctAnswer = q.a * q.b;
+      const isCorrect = userAnswer === correctAnswer;
+
+      if (isCorrect) {
+        this.feedback = 'Correct!';
+        this.feedbackClass = 'feedback-correct';
+        this.trainingScore++;
+        this.trainingResults.push({a: q.a, b: q.b, user_answer: userAnswer, correct: true});
+        this.wrongAttempts = 0;
+        setTimeout(() => this.nextTrainingQuestion(), 500);
+      } else {
+        this.wrongAttempts++;
+        if (this.wrongAttempts >= 2) {
+          // Show answer + mnemonic
+          const key = `${Math.min(q.a, q.b)}x${Math.max(q.a, q.b)}`;
+          this.feedback = `The answer is ${correctAnswer}.`;
+          this.feedbackClass = 'feedback-hint';
+          this.trainingResults.push({a: q.a, b: q.b, user_answer: userAnswer, correct: false});
+          this.wrongAttempts = 0;
+          setTimeout(() => this.nextTrainingQuestion(), 2000);
+        } else {
+          this.feedback = 'Not quite — try again!';
+          this.feedbackClass = 'feedback-retry';
+        }
+      }
+      this.numpadValue = '';
+    },
+
+    nextTrainingQuestion() {
+      this.feedback = '';
+      this.currentQuestionIndex++;
+      if (this.currentQuestionIndex >= this.trainingQuestions.length) {
+        this.finishTraining();
+      }
+    },
+
+    async finishTraining() {
+      this.trainingComplete = true;
+      try {
+        const resp = await fetch(`/missions/${this.currentMission.id}/train`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            questions: this.trainingResults || [],
+            duration_seconds: 0,
+          }),
+        });
+        const data = await resp.json();
+        this.masteredCount = data.mastered_count || 0;
+        this.weakCount = data.weak_count || 0;
+      } catch (e) {
+        console.error('Failed to submit training:', e);
+      }
+    },
+
+    getMotivationalMessage() {
+      const pct = this.trainingTotal > 0 ? (this.trainingScore / this.trainingTotal * 100) : 0;
+      if (pct >= 90) return "Amazing work! You're crushing it!";
+      if (pct >= 70) return "Great job! Keep it up!";
+      if (pct >= 50) return "Good progress! Practice makes perfect!";
+      return "Every session makes you stronger! Keep going!";
+    },
+
+    goToTest(mission) {
+      this.currentMission = mission;
+      if (mission.mission.mission_type === 'piano') {
+        this.view = 'piano';
+        return;
+      }
+      this.startTest(mission.current_level + 1);
+    },
+
+    async startTest(level) {
+      this.view = 'test';
+      this.testLevel = Math.min(level, 3);
+      this.testQuestionIndex = 0;
+      this.testCorrectCount = 0;
+      this.testComplete = false;
+      this.testPassed = false;
+      this.testAnswers = [];
+      this.numpadValue = '';
+      if (this.testTimer) clearInterval(this.testTimer);
+
+      try {
+        const resp = await fetch(`/api/missions/${this.currentMission.id}/test?level=${this.testLevel}`);
+        const data = await resp.json();
+        this.testQuestions = data.questions;
+        this.testTimeLimit = data.time_limit;
+        this.testTimeRemaining = data.time_limit || 0;
+        this.testStartTime = Date.now();
+
+        if (this.testTimeLimit) {
+          this.testTimer = setInterval(() => {
+            const elapsed = (Date.now() - this.testStartTime) / 1000;
+            this.testTimeRemaining = Math.max(0, this.testTimeLimit - Math.floor(elapsed));
+          }, 200);
+        }
+      } catch (e) {
+        console.error('Failed to get test:', e);
+      }
+    },
+
+    get testCurrentQuestion() {
+      return this.testQuestions[this.testQuestionIndex];
+    },
+
+    submitTestAnswer() {
+      if (!this.numpadValue) return;
+      const q = this.testCurrentQuestion;
+      if (!q) return;
+
+      const userAnswer = parseInt(this.numpadValue);
+      const correctAnswer = q.a * q.b;
+      if (userAnswer === correctAnswer) this.testCorrectCount++;
+      this.testAnswers.push(userAnswer);
+      this.numpadValue = '';
+
+      this.testQuestionIndex++;
+      if (this.testQuestionIndex >= this.testQuestions.length) {
+        this.finishTest();
+      }
+    },
+
+    async finishTest() {
+      if (this.testTimer) clearInterval(this.testTimer);
+      const duration = Math.floor((Date.now() - this.testStartTime) / 1000);
+
+      try {
+        const resp = await fetch(`/missions/${this.currentMission.id}/test`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            level: this.testLevel,
+            answers: this.testAnswers,
+            questions: this.testQuestions,
+            duration_seconds: duration,
+          }),
+        });
+        const data = await resp.json();
+        this.testComplete = true;
+        this.testPassed = data.passed;
+        this.testFailReason = data.reason || '';
+
+        if (data.completed && data.reward) {
+          this.celebrationIcon = data.reward.icon;
+          this.celebrationCash = data.reward.cash;
+          this.showCelebration = true;
+          // Fire confetti
+          if (typeof confetti === 'function') {
+            confetti({particleCount: 200, spread: 120, origin: {y: 0.6}});
+          }
+        }
+      } catch (e) {
+        console.error('Failed to submit test:', e);
+      }
+    },
+
+    formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return m + ':' + String(s).padStart(2, '0');
+    },
+
+    async submitPianoPerformance() {
+      try {
+        const resp = await fetch(`/missions/${this.currentMission.id}/test`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({piece_name: this.currentMission?.mission?.config?.piece_name}),
+        });
+        const data = await resp.json();
+        if (data.pending_approval) {
+          this.currentMission.state = 'pending_approval';
+          await this.loadMissions();
+        }
+      } catch (e) {
+        console.error('Failed to submit piano performance:', e);
+      }
+    },
+
+    dismissCelebration() {
+      this.showCelebration = false;
+      this.loadMissions();
+    },
+  };
+}
+</script>
+{% endblock %}

@@ -33,6 +33,9 @@
                         {% set level_names = {1:'Rookie',2:'Apprentice',3:'Helper',4:'Star',5:'Champion',6:'Hero',7:'Legend',8:'Master',9:'Titan',10:'Ultimate'} %}
                         Lv{{ user.level }} &middot; {{ level_names.get(user.level, 'Rookie') }}
                     </div>
+                    {% if user.is_admin %}
+                    <div class="user-card-admin">Admin</div>
+                    {% endif %}
                 </button>
             </form>
             {% endfor %}

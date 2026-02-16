@@ -115,40 +115,50 @@
 
 | # | Decision | Detail |
 |---|----------|--------|
-| 66 | **Admin-assigned only** | Kids cannot self-assign missions. |
-| 67 | **State machine design** | `assigned` → `training` → `ready_for_test` → `testing` → `completed` (or `failed` → back to `training`). Piano adds `pending_approval` state. |
-| 68 | **Unlimited retries, no punishment** | Failing sends user back to training. |
-| 69 | **Open-ended** | No deadlines on missions. |
-| 70 | **Multiplication mission** | Range 1-12. Goal: 35 correct in 1 minute. Adaptive training. User chooses session length (10/20/30 problems). |
-| 71 | **Piano mission** | Admin approval required for completion. Kid marks "ready," admin confirms. |
-| 72 | **Mission rewards** | Cash reward + unique ultra-flashy profile icon. Independent of achievements. |
-| 73 | **Mission progress is private** | Other users cannot see mission progress. |
-| 74 | **Missions are modular** | Pluggable framework. Start with multiplication + piano, add more later. |
+| 66 | **Admin-assigned only** | Kids cannot self-assign missions. Missions only visible to the assigned user. |
+| 67 | **State machine — multiplication** | `assigned` → `training` → `testing` → `completed` (or `failed` → retry immediately). Three test levels: L1 (45 correct, no time limit), L2 (45 correct in 120s), L3 (45 correct in 60s). Only L3 completion unlocks rewards. |
+| 68 | **State machine — piano** | `assigned` → `pending_approval` → `completed`. No training or testing phase. Kid clicks "I did it" → admin approves. |
+| 69 | **Open-ended, no cooldowns** | No deadlines on missions. No cooldown between test attempts. Unlimited training sessions (no daily cap). |
+| 70 | **Multiplication mission** | Range 1–12 x 1–12. Training has two modes: confidence (drills known facts) and explore (teaches new facts). Test requires 45 correct answers; test does NOT end at time limit — completion within the time limit is what's required. |
+| 71 | **Multiplication training UX** | iPad-friendly with on-screen numpad. No visible timer or score during training. Wrong answer → encouraging message + second attempt; wrong again → show correct answer + mnemonic device. Memorization-first approach (not deduction). |
+| 72 | **Multiplication adaptive weighting** | Gentle bias toward weak facts based on last 3 training sessions. Two training modes: confidence phase (drills mastered facts) and explore phase (introduces/reinforces weak facts). |
+| 73 | **Multiplication test levels** | L1: 45 correct, no time limit. L2: 45 correct in 120 seconds. L3: 45 correct in 60 seconds. Each level unlocks the next. Only L3 grants cash reward, XP, and mission profile icon. |
+| 74 | **Multiplication test UX** | On-screen numpad input. Timed levels show countdown timer. Encouraging feedback on failure with score shown. No cooldown — can retry immediately. |
+| 75 | **Piano mission — simple flow** | Kid enters the piece name. Single "I did it" button flips to `pending_approval`. Admin approves or rejects from admin page. No in-app training or testing. |
+| 76 | **Mission rewards** | Admin-defined cash reward per mission + unique ultra-flashy profile icon. Cash auto-deposited to bank account as `mission_reward` transaction. Independent of achievements. |
+| 77 | **Mission celebration** | Short celebration (not 60 seconds). Full-screen overlay with fireworks, new profile icon displayed prominently, cash reward amount featured. Dismiss button. Auto-equips icon. |
+| 78 | **Multiple active missions** | Users can have multiple missions active simultaneously. Same mission type can be assigned to multiple users independently. |
+| 79 | **Mission creation vs assignment** | Mission definitions created in codebase (code/seed). Assignment happens from admin page (minimal admin missions UI needed in Phase 4). Architecture must support adding many new mission types in the future. |
+| 80 | **Mission progress is private** | Other users cannot see mission progress. |
+| 81 | **Missions are modular** | Pluggable framework. Start with multiplication + piano, add more later. |
+| 82 | **Mission training feedback** | End-of-session screen shows score, progress over time, facts mastered count. Motivational tone throughout. |
+| 83 | **New mission notification** | When admin assigns a mission, user sees a notification on next login. |
+| 84 | **Missions hub empty state** | Shows "No missions assigned yet" message + list of completed missions if any. |
 
 ## Gamification & User Page
 
 | # | Decision | Detail |
 |---|----------|--------|
-| 75 | **XP per chore: 10** | +2x bonus if 100% weekly completion (all chore XP doubled). |
-| 76 | **Levels scale increasingly** | e.g., Level 2 = 100 XP, Level 3 = 250 XP, etc. Progressively harder. |
-| 77 | **Level-up affects entire app** | Higher levels = visual upgrades across the whole app (particle effects, animated themes), not just profile. |
-| 78 | **Per-user themes** | Each user picks an accent color (some unlockable). App feels personalized. |
-| 79 | **Achievement catalog** | All achievements shown. Locked ones greyed out with clear requirements. Achievements grant XP only. |
-| 80 | **Daily streak tracking** | Consecutive weeks of 100% chore completion. Milestones at 7, 14, 30, 60, 90 days. |
-| 81 | **Tiered achievement notifications** | Small achievements = toast. Medium = banner slide-down. Big = full-screen celebration with animation + sound. |
-| 82 | **Sound effects and animations** | Level-up fanfare, achievement unlock, cha-ching for deposits, mission fireworks + cheering. |
-| 83 | **No competitive/leaderboard elements** | Strictly individual. Shelved for later. |
+| 85 | **XP per chore: 10** | +2x bonus if 100% weekly completion (all chore XP doubled). |
+| 86 | **Levels scale increasingly** | e.g., Level 2 = 100 XP, Level 3 = 250 XP, etc. Progressively harder. |
+| 87 | **Level-up affects entire app** | Higher levels = visual upgrades across the whole app (particle effects, animated themes), not just profile. |
+| 88 | **Per-user themes** | Each user picks an accent color (some unlockable). App feels personalized. |
+| 89 | **Achievement catalog** | All achievements shown. Locked ones greyed out with clear requirements. Achievements grant XP only. |
+| 90 | **Daily streak tracking** | Consecutive weeks of 100% chore completion. Milestones at 7, 14, 30, 60, 90 days. |
+| 91 | **Tiered achievement notifications** | Small achievements = toast. Medium = banner slide-down. Big = full-screen celebration with animation + sound. |
+| 92 | **Sound effects and animations** | Level-up fanfare, achievement unlock, cha-ching for deposits, mission fireworks + cheering. |
+| 93 | **No competitive/leaderboard elements** | Strictly individual. Shelved for later. |
 
 ## Technical Architecture
 
 | # | Decision | Detail |
 |---|----------|--------|
-| 84 | **Alpine.js** | Lightweight reactive frontend. No build step. |
-| 85 | **Flask blueprints** | Split into: `auth`, `calendar`, `chores`, `grocery`, `bank`, `missions`, `users`, `admin`. |
-| 86 | **Flask-SocketIO** | Real-time bank ticker (nav bar + bank page) and live notifications. |
-| 87 | **Flask-Migrate / Alembic** | Continuing from existing V1 migrations. |
-| 88 | **Bottom navigation bar** | Icons for: Calendar, Chores, Grocery, Bank, Missions, Profile. User avatar + interest ticker + switch-user. |
-| 89 | **Weekly digest email to parents** | All kids' stats in one email to admin users. |
-| 90 | **Data export** | CSV/JSON export for bank transactions and chore history. |
-| 91 | **Automated DB backup** | Daily backup of SQLite database on the droplet. |
-| 92 | **All config editable in admin UI** | Interest rate, savings max, lock period, PIN, idle timeout — everything. |
+| 94 | **Alpine.js** | Lightweight reactive frontend. No build step. |
+| 95 | **Flask blueprints** | Split into: `auth`, `calendar`, `chores`, `grocery`, `bank`, `missions`, `users`, `admin`. |
+| 96 | **Flask-SocketIO** | Real-time bank ticker (nav bar + bank page) and live notifications. |
+| 97 | **Flask-Migrate / Alembic** | Continuing from existing V1 migrations. |
+| 98 | **Bottom navigation bar** | Icons for: Calendar, Chores, Grocery, Bank, Missions, Profile. User avatar + interest ticker + switch-user. |
+| 99 | **Weekly digest email to parents** | All kids' stats in one email to admin users. |
+| 100 | **Data export** | CSV/JSON export for bank transactions and chore history. |
+| 101 | **Automated DB backup** | Daily backup of SQLite database on the droplet. |
+| 102 | **All config editable in admin UI** | Interest rate, savings max, lock period, PIN, idle timeout — everything. |

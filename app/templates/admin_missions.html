@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Admin — Missions{% endblock %}
+
+{% block content %}
+<div x-data="adminMissionsApp()" x-init="init()" class="admin-missions-container">
+
+  <h1 class="page-title">Mission Admin</h1>
+
+  <!-- Assign Mission -->
+  <div class="admin-missions-section">
+    <h2 class="section-title">Assign Mission</h2>
+    <div class="assign-form">
+      <select x-model="selectedUser" class="form-select">
+        <option value="">Select user...</option>
+        <template x-for="u in users" :key="u.id">
+          <option :value="u.id" x-text="u.username"></option>
+        </template>
+      </select>
+      <select x-model="selectedMission" class="form-select">
+        <option value="">Select mission...</option>
+        <template x-for="m in missions" :key="m.id">
+          <option :value="m.id" x-text="m.title"></option>
+        </template>
+      </select>
+      <button class="btn btn-accent" @click="assignMission()" :disabled="!selectedUser || !selectedMission">Assign</button>
+    </div>
+    <p x-show="assignMessage" x-text="assignMessage" class="assign-message" :class="assignError ? 'error' : 'success'"></p>
+  </div>
+
+  <!-- Pending Approvals -->
+  <div class="admin-missions-section" x-show="pendingApprovals.length > 0">
+    <h2 class="section-title">Pending Approvals</h2>
+    <div class="approval-list">
+      <template x-for="a in pendingApprovals" :key="a.id">
+        <div class="approval-card">
+          <div class="approval-info">
+            <strong x-text="getUserName(a.user_id)"></strong>
+            <span> — </span>
+            <span x-text="getMissionTitle(a.mission_id)"></span>
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-accent btn-sm" @click="approve(a.id)">Approve</button>
+            <button class="btn btn-danger btn-sm" @click="reject(a.id)">Reject</button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- All Assignments -->
+  <div class="admin-missions-section">
+    <h2 class="section-title">All Assignments</h2>
+    <template x-if="assignments.length === 0">
+      <p class="empty-text">No missions assigned yet.</p>
+    </template>
+    <div class="assignments-list">
+      <template x-for="a in assignments" :key="a.id">
+        <div class="assignment-row">
+          <span class="assignment-user" x-text="getUserName(a.user_id)"></span>
+          <span class="assignment-mission" x-text="getMissionTitle(a.mission_id)"></span>
+          <span class="state-badge" :class="'badge-' + a.state" x-text="a.state"></span>
+          <span class="assignment-level" x-text="'L' + a.current_level" x-show="a.current_level > 0"></span>
+        </div>
+      </template>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function adminMissionsApp() {
+  return {
+    missions: [],
+    assignments: [],
+    users: [],
+    selectedUser: '',
+    selectedMission: '',
+    assignMessage: '',
+    assignError: false,
+
+    get pendingApprovals() {
+      return this.assignments.filter(a => a.state === 'pending_approval');
+    },
+
+    async init() {
+      await this.load();
+    },
+
+    async load() {
+      try {
+        const resp = await fetch('/api/admin/missions');
+        const data = await resp.json();
+        this.missions = data.missions || [];
+        this.assignments = data.assignments || [];
+        this.users = data.users || [];
+      } catch (e) {
+        console.error('Failed to load admin data:', e);
+      }
+    },
+
+    getUserName(userId) {
+      const u = this.users.find(u => u.id === userId);
+      return u ? u.username : 'Unknown';
+    },
+
+    getMissionTitle(missionId) {
+      const m = this.missions.find(m => m.id === missionId);
+      return m ? m.title : 'Unknown';
+    },
+
+    async assignMission() {
+      this.assignMessage = '';
+      try {
+        const resp = await fetch('/api/admin/missions/assign', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            mission_id: parseInt(this.selectedMission),
+            user_id: parseInt(this.selectedUser),
+          }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          this.assignMessage = 'Mission assigned!';
+          this.assignError = false;
+          this.selectedUser = '';
+          this.selectedMission = '';
+          await this.load();
+        } else {
+          this.assignMessage = data.error || 'Failed to assign';
+          this.assignError = true;
+        }
+      } catch (e) {
+        this.assignMessage = 'Network error';
+        this.assignError = true;
+      }
+    },
+
+    async approve(id) {
+      try {
+        await fetch(`/api/admin/missions/${id}/approve`, {method: 'POST'});
+        await this.load();
+      } catch (e) {
+        console.error('Approve failed:', e);
+      }
+    },
+
+    async reject(id) {
+      try {
+        await fetch(`/api/admin/missions/${id}/reject`, {method: 'POST'});
+        await this.load();
+      } catch (e) {
+        console.error('Reject failed:', e);
+      }
+    },
+  };
+}
+</script>
+{% endblock %}
