@@ -135,6 +135,7 @@ def bank_overview():
         "savings_max": current_app.config.get("SAVINGS_MAX", 100.0),
         "savings_deposit_min": current_app.config.get("SAVINGS_DEPOSIT_MIN", 1.0),
         "cashout_min": current_app.config.get("CASHOUT_MIN", 1.0),
+        "fire_mode": user.fire_mode,
     })
 
 
@@ -196,11 +197,16 @@ def cashout():
 
     _send_cashout_email(user, total)
 
+    # Check cashout achievements
+    from app.services.achievements import check_achievements
+    achievements = check_achievements(user_id, "cashout")
+
     return jsonify({
         "cashed_out": round(total, 2),
         "cash_portion": round(cash_portion, 2),
         "savings_portion": round(savings_portion, 2),
         "account": account.to_dict(),
+        "achievements": achievements,
     })
 
 
@@ -268,9 +274,22 @@ def savings_deposit():
     )
     db.session.commit()
 
+    # Check deposit achievements
+    from app.services.achievements import check_achievements
+    achievements = check_achievements(user_id, "savings_deposit")
+
+    # Check if savings goal is completed
+    goal = SavingsGoal.query.filter_by(user_id=user_id, completed_at=None).first()
+    new_total = current_savings + amount
+    if goal and new_total >= goal.target_amount:
+        goal.completed_at = datetime.utcnow()
+        db.session.commit()
+        achievements.extend(check_achievements(user_id, "savings_goal_completed"))
+
     return jsonify({
         "deposit": deposit.to_dict(),
         "account": account.to_dict(),
+        "achievements": achievements,
     }), 201
 
 

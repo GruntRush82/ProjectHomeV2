@@ -7,11 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.3.1">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% block head %}{% endblock %}
 </head>
 <body class="theme-{{ current_user.theme_color if current_user else 'cyan' }}"
+      data-level="{{ current_user.level if current_user else 1 }}"
+      data-fire-mode="{{ 'true' if current_user and current_user.fire_mode else 'false' }}"
       x-data="app"
       @visibilitychange.window="handleVisibility()">
 
@@ -62,7 +64,7 @@
 
         <!-- Current user + switch -->
         <a href="/session/logout" class="nav-user">
-            <span class="nav-user-avatar">{{ current_user.icon if current_user.icon != 'question_mark' else '?' }}</span>
+            <span class="nav-user-avatar">{{ current_user.icon | icon_emoji }}</span>
             <span>{{ current_user.username }}</span>
             <span class="nav-level-badge">Lv{{ current_user.level }}</span>
         </a>
@@ -87,6 +89,71 @@
         </div>
       </div>
     </template>
+
+    <!-- Achievement toast (bronze) -->
+    <template x-if="currentAchievement && currentAchievement.tier === 'bronze'">
+      <div class="achievement-toast" @click="_dismissCurrentAchievement()">
+        <div class="achievement-toast-icon" x-text="currentAchievement.icon"></div>
+        <div class="achievement-toast-body">
+          <div class="achievement-toast-title" x-text="currentAchievement.name"></div>
+          <div class="achievement-toast-desc" x-text="currentAchievement.description"></div>
+          <div class="achievement-toast-xp" x-text="'+' + currentAchievement.xp_reward + ' XP'"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Achievement banner (silver) -->
+    <template x-if="currentAchievement && currentAchievement.tier === 'silver'">
+      <div class="achievement-banner" @click="_dismissCurrentAchievement()">
+        <div class="achievement-banner-icon" x-text="currentAchievement.icon"></div>
+        <div class="achievement-banner-body">
+          <div class="achievement-banner-label">Achievement Unlocked!</div>
+          <div class="achievement-banner-title" x-text="currentAchievement.name"></div>
+          <div class="achievement-banner-desc" x-text="currentAchievement.description"></div>
+          <div class="achievement-banner-xp" x-text="'+' + currentAchievement.xp_reward + ' XP'"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Achievement fullscreen (gold) -->
+    <template x-if="currentAchievement && currentAchievement.tier === 'gold'">
+      <div class="achievement-fullscreen" @click="_dismissCurrentAchievement()">
+        <div class="achievement-fullscreen-card">
+          <div class="achievement-fullscreen-particles"></div>
+          <div class="achievement-fullscreen-label">LEGENDARY ACHIEVEMENT</div>
+          <div class="achievement-fullscreen-icon" x-text="currentAchievement.icon"></div>
+          <div class="achievement-fullscreen-title" x-text="currentAchievement.name"></div>
+          <div class="achievement-fullscreen-desc" x-text="currentAchievement.description"></div>
+          <div class="achievement-fullscreen-xp" x-text="'+' + currentAchievement.xp_reward + ' XP'"></div>
+          <div class="achievement-fullscreen-hint">Tap to dismiss</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Level-up overlay -->
+    <template x-if="levelUpData">
+      <div class="levelup-overlay" @click="levelUpData = null">
+        <div class="levelup-card">
+          <div class="levelup-label">LEVEL UP!</div>
+          <div class="levelup-level" x-text="'Level ' + levelUpData.new_level"></div>
+          <div class="levelup-name" x-text="levelUpData.level_name"></div>
+          <div class="levelup-hint">Tap to continue</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Fire Mode activation overlay -->
+    <template x-if="showFireMode">
+      <div class="fire-mode-overlay" @click="showFireMode = false">
+        <div class="fire-mode-card">
+          <div class="fire-mode-flames">&#128293;&#128293;&#128293;</div>
+          <div class="fire-mode-label">FIRE MODE ACTIVATED!</div>
+          <div class="fire-mode-desc">+50% Allowance Bonus</div>
+          <div class="fire-mode-streak" x-text="'Week ' + fireModeStreak + ' streak!'"></div>
+          <div class="fire-mode-hint">Tap to continue</div>
+        </div>
+      </div>
+    </template>
     {% endif %}
 
     {% block scripts %}{% endblock %}
@@ -104,6 +171,13 @@
             idleTimer: null,
             idleTimeout: {{ idle_timeout_ms|default(300000) }},
             missionNotifications: [],
+            // Achievement notifications
+            achievementQueue: [],
+            currentAchievement: null,
+            showingAchievement: false,
+            levelUpData: null,
+            showFireMode: false,
+            fireModeStreak: 0,
 
             init() {
                 this.resetIdleTimer();
@@ -114,6 +188,7 @@
                 this._startNavTicker();
                 setInterval(() => this._syncNavTicker(), 30000);
                 this._checkMissionNotifications();
+                this._checkAchievementNotifications();
                 {% endif %}
             },
 
@@ -183,6 +258,65 @@
                     await fetch('/api/missions/notifications/dismiss', { method: 'POST' });
                 } catch (e) {}
                 this.missionNotifications = [];
+            },
+
+            async _checkAchievementNotifications() {
+                try {
+                    const res = await fetch('/api/achievements/notifications');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    const notifications = data.notifications || [];
+                    if (notifications.length === 0) return;
+
+                    // Build queue from achievement data, gold first (API already sorts)
+                    this.achievementQueue = notifications.map(n => n.achievement);
+                    this._showNextAchievement();
+                } catch (e) {}
+            },
+
+            _showNextAchievement() {
+                if (this.achievementQueue.length === 0) {
+                    this.currentAchievement = null;
+                    this.showingAchievement = false;
+                    return;
+                }
+                this.currentAchievement = this.achievementQueue.shift();
+                this.showingAchievement = true;
+
+                // Auto-dismiss after tier-appropriate timeout
+                const timeouts = { bronze: 3000, silver: 5000, gold: 8000 };
+                const timeout = timeouts[this.currentAchievement.tier] || 3000;
+                setTimeout(() => {
+                    if (this.showingAchievement) {
+                        this._dismissCurrentAchievement();
+                    }
+                }, timeout);
+            },
+
+            async _dismissCurrentAchievement() {
+                if (!this.currentAchievement) return;
+                try {
+                    await fetch('/api/achievements/notifications/dismiss', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ achievement_ids: [this.currentAchievement.id] })
+                    });
+                } catch (e) {}
+                this.currentAchievement = null;
+                this.showingAchievement = false;
+                // Show next after brief pause
+                setTimeout(() => this._showNextAchievement(), 500);
+            },
+
+            _showLevelUp(data) {
+                this.levelUpData = data;
+                setTimeout(() => { this.levelUpData = null; }, 5000);
+            },
+
+            _showFireModeActivation(streak) {
+                this.fireModeStreak = streak;
+                this.showFireMode = true;
+                setTimeout(() => { this.showFireMode = false; }, 8000);
             }
         }));
     });

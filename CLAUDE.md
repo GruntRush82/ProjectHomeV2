@@ -12,7 +12,7 @@ python run.py              # Starts on http://0.0.0.0:5000
 
 - **Branch:** `v2` (V1 stays live on `master`)
 - **Specs:** `specs/V2_PLAN.md` (phased plan + session handoff log), `specs/DECISIONS.md` (92 finalized decisions)
-- **Tests:** `pytest tests/` (208 tests, all passing as of Phase 4 completion)
+- **Tests:** `pytest tests/` (291 tests, all passing as of Phase 5 completion)
 - **DB:** SQLite at `instance/chores.db`. For a fresh DB: delete the file and run `python -c "from app import create_app; from app.extensions import db; app=create_app(); app.app_context().push(); db.create_all()"`
 - **Seed production chores:** Pull V1 DB from droplet, map user IDs, insert into V2 DB (see session handoff log in V2_PLAN.md)
 
@@ -44,16 +44,18 @@ app/
 ├── config.py                # Config / TestConfig classes
 ├── extensions.py            # db, migrate, socketio, scheduler
 ├── blueprints/
+│   ├── achievements.py      # Achievement notifications, catalog, profile page, icon/theme APIs
 │   ├── auth.py              # PIN, IP trust, login, sessions
 │   ├── bank.py              # Bank: cashout, savings, goals, transactions, stats, ticker
 │   ├── calendar_bp.py       # Calendar dashboard, events CRUD, today API
-│   ├── chores.py            # Chore CRUD, grid, archive, reset, streak + bank integration
+│   ├── chores.py            # Chore CRUD, grid, archive, reset, streak + bank + XP integration
 │   ├── grocery.py           # Grocery list CRUD, email
 │   ├── missions.py          # Mission hub, training, testing, notifications, admin assign/approve
 │   └── users.py             # User CRUD
 ├── models/
 │   ├── __init__.py          # Model imports for Alembic discovery
-│   ├── user.py              # User (username, email, allowance, xp, level, icon, theme...)
+│   ├── achievement.py       # Achievement (catalog), UserAchievement (per-user unlocks)
+│   ├── user.py              # User (username, email, allowance, xp, level, icon, theme, streaks, fire_mode...)
 │   ├── chore.py             # Chore, ChoreHistory
 │   ├── bank.py              # BankAccount, SavingsDeposit, Transaction, SavingsGoal
 │   ├── calendar.py          # CalendarEvent
@@ -62,10 +64,12 @@ app/
 │   └── security.py          # TrustedIP, PinAttempt, AppConfig
 ├── services/
 │   ├── __init__.py
+│   ├── achievements.py      # Achievement checking engine (trigger-based unlock + XP grant)
 │   ├── allowance.py         # Allowance tier calculation (100%→full, ≥50%→half, <50%→$0)
 │   ├── email.py             # Mailgun wrapper (V2-native, dry-run when keys missing)
 │   ├── google_cal.py        # Google Calendar API integration (service account, caching)
 │   ├── interest.py          # Interest calculation, crediting, ticker data
+│   ├── xp.py                # XP grant, level thresholds (10 levels), level-up detection
 │   └── missions/            # Mission handler framework
 │       ├── __init__.py      # Handler registry (MISSION_HANDLERS dict)
 │       ├── base.py          # BaseMissionHandler ABC
@@ -73,19 +77,21 @@ app/
 │       └── piano.py         # Simple "I did it" → admin approval flow
 ├── scripts/
 │   ├── migrate_v1_data.py   # One-time V1 data migration
+│   ├── seed_achievements.py # Seed 14 achievement definitions (idempotent)
 │   └── seed_missions.py     # Seed Multiplication Master + Piano Performance definitions
 ├── static/
 │   ├── css/style.css        # Dark neon glassmorphic theme
 │   ├── js/scripts.js        # Chore/grocery frontend logic
 │   └── sounds/cheer.wav
 └── templates/
-    ├── base.html            # Base layout, bottom nav, Alpine.js idle timer, total-available ticker
-    ├── bank.html            # Bank page: cashout, savings gems, goals, transaction history
+    ├── base.html            # Base layout, bottom nav, Alpine.js idle timer, ticker, achievement notifications
+    ├── bank.html            # Bank page: cashout, savings gems, goals, Fire Mode indicator
     ├── calendar.html        # Daily calendar dashboard (served at /calendar)
-    ├── login.html           # User selection cards (served at /)
+    ├── login.html           # User selection cards with level effects (served at /)
     ├── missions.html        # Mission hub: training, testing, numpad, celebration (served at /missions)
     ├── admin_missions.html  # Admin: assign missions, approve/reject piano (served at /admin/missions)
     ├── pin.html             # PIN entry pad (served at /pin)
+    ├── profile.html         # Profile page: stats, icons, themes, achievement catalog (served at /profile)
     └── chore_tracker.html   # Chore grid SPA (served at /chores-page)
 
 run.py                       # Entry point: socketio.run(app)
@@ -93,19 +99,27 @@ tests/
 ├── conftest.py              # Shared fixtures (app, db, client, auth_client, sample_users, etc.)
 ├── test_smoke.py            # 5 smoke tests
 ├── unit/
+│   ├── test_achievement_models.py # 11 achievement model + seed tests
+│   ├── test_achievement_service.py # 13 achievement engine tests
 │   ├── test_allowance.py    # 10 allowance tier calculation tests
 │   ├── test_interest.py     # 11 interest calculation/crediting tests
 │   ├── test_mission_models.py     # 9 mission model tests
 │   ├── test_multiplication_service.py  # 20 multiplication handler tests
 │   ├── test_piano_service.py      # 7 piano handler + registry tests
 │   ├── test_streaks.py      # 4 streak tracking unit tests
+│   ├── test_xp_service.py   # 13 XP service tests (levels, grant, level-up)
 │   └── test_weekly_reset_bank.py  # 6 weekly reset bank integration tests
 └── api/
+    ├── test_achievement_integration.py  # 11 gamification hook integration tests
+    ├── test_achievements_api.py  # 8 achievement API tests (notifications, catalog)
     ├── test_auth.py         # 10 auth/PIN/IP-trust tests
     ├── test_bank_api.py     # 37 bank API tests (cashout, savings, goals, transactions)
     ├── test_calendar_api.py # 11 calendar API tests (today, events CRUD)
+    ├── test_gamification_e2e.py  # 10 end-to-end gamification flow tests
+    ├── test_level_visuals.py # 3 level/fire-mode data attribute tests
     ├── test_missions_api.py # 25 mission API tests (auth, CRUD, state, notifications, admin)
     ├── test_mission_integration.py  # 8 end-to-end mission flow tests
+    ├── test_profile_api.py  # 14 profile API tests (icon, theme, level gating)
     ├── test_session.py      # 8 login/logout/session tests
     ├── test_chores_api.py   # Chore CRUD tests
     ├── test_grocery_api.py  # Grocery CRUD tests
@@ -114,7 +128,11 @@ tests/
 
 ## Database Models
 
-**User:** id, username (unique), email, allowance, is_admin, icon, theme_color, xp, level, streak_current, streak_best
+**User:** id, username (unique), email, allowance, is_admin, icon, theme_color, xp, level, streak_current, streak_best, perfect_weeks_total, fire_mode
+
+**Achievement:** id, name (unique), description, icon, category, requirement_type, requirement_value, xp_reward, tier, is_visible, display_order
+
+**UserAchievement:** id, user_id (FK), achievement_id (FK), unlocked_at, notified. Unique constraint on (user_id, achievement_id)
 
 **Chore:** id, description, completed, user_id (FK), day, rotation_type (static/rotating), rotation_order (JSON), base_user_id (FK)
 
@@ -221,6 +239,18 @@ tests/
 |-------|--------|---------|
 | `/users` | GET/POST | List all / create user |
 | `/users/<id>` | DELETE | Delete user + cascade chores |
+
+### Achievements & Profile (achievements.py)
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/achievements/notifications` | GET | Unnotified achievements (gold-first) |
+| `/api/achievements/notifications/dismiss` | POST | Mark achievement(s) as notified |
+| `/api/achievements/catalog` | GET | All 14 achievements with locked/unlocked status |
+| `/api/achievements/user` | GET | Current user's unlocked achievements |
+| `/profile` | GET | Render profile page |
+| `/api/profile` | GET | JSON: user info, level, XP, streaks, icons, themes |
+| `/api/profile/icon` | POST | Update icon (validates level/mission unlock) |
+| `/api/profile/theme` | POST | Update theme colour (validates level unlock) |
 
 ## Template Context
 

@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Felker Family Hub{% endblock %}
+
+{% block content %}
+<div x-data="profileApp" x-init="loadProfile()" x-cloak>
+
+    <!-- Header: avatar, name, level, XP bar -->
+    <section class="profile-header">
+        <div class="profile-avatar" x-text="iconIdToEmoji(profileIcon)"></div>
+        <div class="profile-info">
+            <div class="profile-username" x-text="username"></div>
+            <div class="profile-level-badge">
+                <span class="profile-level" x-text="'Lv' + level"></span>
+                <span class="profile-level-name" x-text="levelName"></span>
+            </div>
+            <div class="xp-bar">
+                <div class="xp-bar-fill" :style="'width:' + progressPct + '%'"></div>
+            </div>
+            <div class="xp-bar-label" x-text="xp + ' / ' + (nextLevelXp || 'MAX') + ' XP'"></div>
+        </div>
+    </section>
+
+    <!-- Stats row -->
+    <section class="profile-stats-row">
+        <div class="profile-stat">
+            <div class="profile-stat-value">
+                <span x-text="streakCurrent"></span>
+                <template x-if="fireMode">
+                    <span class="fire-badge">&#128293; FIRE</span>
+                </template>
+            </div>
+            <div class="profile-stat-label">Current Streak</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-value" x-text="streakBest"></div>
+            <div class="profile-stat-label">Best Streak</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-value" x-text="achievementsUnlocked + '/14'"></div>
+            <div class="profile-stat-label">Achievements</div>
+        </div>
+    </section>
+
+    <!-- Achievement showcase -->
+    <section class="profile-section">
+        <div class="section-header">
+            <h2 class="section-title">Achievements</h2>
+            <button class="btn-ghost btn-sm" @click="showAllAchievements = !showAllAchievements"
+                    x-text="showAllAchievements ? 'Show Recent' : 'Show All'"></button>
+        </div>
+
+        <!-- Recent 3 -->
+        <div class="achievement-grid" x-show="!showAllAchievements">
+            <template x-for="a in recentAchievements" :key="a.id">
+                <div class="achievement-card achievement-unlocked" :class="'achievement-' + a.tier">
+                    <div class="achievement-card-icon" x-text="a.icon"></div>
+                    <div class="achievement-card-name" x-text="a.name"></div>
+                    <div class="achievement-card-xp" x-text="'+' + a.xp_reward + ' XP'"></div>
+                </div>
+            </template>
+            <div x-show="recentAchievements.length === 0" class="empty-state">
+                No achievements yet — start completing chores!
+            </div>
+        </div>
+
+        <!-- Full catalog -->
+        <div x-show="showAllAchievements">
+            <template x-for="cat in ['chores', 'streaks', 'bank']" :key="cat">
+                <div class="achievement-category">
+                    <h3 class="achievement-category-title" x-text="cat.charAt(0).toUpperCase() + cat.slice(1)"></h3>
+                    <div class="achievement-grid">
+                        <template x-for="a in catalogByCategory(cat)" :key="a.id">
+                            <div class="achievement-card" :class="{
+                                'achievement-unlocked': a.unlocked,
+                                'achievement-locked': !a.unlocked,
+                                ['achievement-' + a.tier]: true
+                            }">
+                                <div class="achievement-card-icon" :class="{ 'achievement-icon-locked': !a.unlocked }"
+                                     x-text="a.icon"></div>
+                                <div class="achievement-card-name" x-text="a.name"></div>
+                                <template x-if="a.unlocked">
+                                    <div class="achievement-card-xp" x-text="'+' + a.xp_reward + ' XP'"></div>
+                                </template>
+                                <template x-if="!a.unlocked">
+                                    <div class="achievement-card-req" x-text="a.description"></div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <!-- Icon selector -->
+    <section class="profile-section">
+        <h2 class="section-title">Choose Your Icon</h2>
+        <div class="icon-grid">
+            <!-- Starter emojis -->
+            <template x-for="icon in starterIcons" :key="icon">
+                <button class="icon-btn" :class="{ 'icon-selected': profileIcon === icon }"
+                        @click="selectIcon(icon)" x-text="icon"></button>
+            </template>
+            <!-- Level-unlocked CSS icons -->
+            <template x-for="li in levelIcons" :key="li.id">
+                <button class="icon-btn" :class="{
+                    'icon-selected': profileIcon === li.id,
+                    'icon-locked': level < li.level,
+                    ['icon-' + li.css_class]: true
+                }"
+                        @click="level >= li.level && selectIcon(li.id)"
+                        :disabled="level < li.level">
+                    <span x-text="li.emoji"></span>
+                    <span class="icon-lock" x-show="level < li.level" x-text="'Lv' + li.level"></span>
+                </button>
+            </template>
+            <!-- Mission-earned icons -->
+            <template x-for="mi in missionIcons" :key="mi.id">
+                <button class="icon-btn" :class="{
+                    'icon-selected': profileIcon === mi.id,
+                    'icon-locked': !mi.earned,
+                    ['icon-' + mi.css_class]: mi.earned
+                }"
+                        @click="mi.earned && selectIcon(mi.id)"
+                        :disabled="!mi.earned">
+                    <span x-text="mi.emoji"></span>
+                    <span class="icon-lock" x-show="!mi.earned">Mission</span>
+                </button>
+            </template>
+        </div>
+    </section>
+
+    <!-- Theme color picker -->
+    <section class="profile-section">
+        <h2 class="section-title">Theme Color</h2>
+        <div class="theme-swatch-grid">
+            <template x-for="t in themeColors" :key="t.name">
+                <button class="theme-swatch" :class="{
+                    'swatch-selected': currentTheme === t.name,
+                    'swatch-locked': level < t.unlock_level
+                }"
+                        :style="'--swatch-color:' + t.hex"
+                        @click="level >= t.unlock_level && selectTheme(t.name)"
+                        :disabled="level < t.unlock_level">
+                    <div class="swatch-fill"></div>
+                    <span class="swatch-lock" x-show="level < t.unlock_level"
+                          x-text="'Lv' + t.unlock_level"></span>
+                    <span class="swatch-name" x-text="t.name"></span>
+                </button>
+            </template>
+        </div>
+    </section>
+
+    <!-- Flash message -->
+    <div class="bank-flash" x-show="flashMsg" x-cloak
+         x-transition :class="flashType" x-text="flashMsg"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('profileApp', () => ({
+        // Profile data
+        username: '',
+        profileIcon: '?',
+        level: 1,
+        levelName: 'Rookie',
+        xp: 0,
+        nextLevelXp: 200,
+        progressPct: 0,
+        streakCurrent: 0,
+        streakBest: 0,
+        fireMode: false,
+        achievementsUnlocked: 0,
+        currentTheme: 'cyan',
+        // UI state
+        showAllAchievements: false,
+        flashMsg: '',
+        flashType: 'success',
+        // Achievement data
+        recentAchievements: [],
+        catalog: [],
+        // Icon data
+        starterIcons: ['?', '\u{1F3AE}', '\u26A1', '\u{1F680}', '\u{1F3AF}', '\u{1F31F}', '\u{1F525}', '\u{1F48E}', '\u{1F98A}', '\u{1F409}', '\u{1F3B8}', '\u{1F3C0}', '\u{1F3A8}', '\u{1F308}', '\u{1F981}', '\u{1F43A}', '\u{1F985}', '\u{1F3AA}', '\u{1F916}', '\u{1F6F8}'],
+        levelIcons: [
+            { id: 'shield', emoji: '\u{1F6E1}\uFE0F', css_class: 'icon-enhanced', level: 3 },
+            { id: 'crown', emoji: '\u{1F451}', css_class: 'icon-enhanced', level: 3 },
+            { id: 'dragon_face', emoji: '\u{1F432}', css_class: 'icon-glowing', level: 5 },
+            { id: 'phoenix', emoji: '\u{1F426}\u200D\u{1F525}', css_class: 'icon-glowing', level: 5 },
+            { id: 'thunder', emoji: '\u{26A1}', css_class: 'icon-premium', level: 7 },
+            { id: 'flame', emoji: '\u{1F525}', css_class: 'icon-premium', level: 7 },
+            { id: 'galaxy', emoji: '\u{1F30C}', css_class: 'icon-ultimate', level: 10 },
+            { id: 'infinity', emoji: '\u267E\uFE0F', css_class: 'icon-ultimate', level: 10 },
+        ],
+        missionIcons: [
+            { id: 'lightning_brain', emoji: '\u{1F9E0}\u26A1', css_class: 'icon-mission-lightning', earned: false },
+            { id: 'golden_music_note', emoji: '\u{1F3B5}\u2728', css_class: 'icon-mission-music', earned: false },
+        ],
+        // Map icon IDs to emojis for display
+        iconIdToEmoji(id) {
+            const li = this.levelIcons.find(i => i.id === id);
+            if (li) return li.emoji;
+            const mi = this.missionIcons.find(i => i.id === id);
+            if (mi) return mi.emoji;
+            return id;  // starter icons are already emojis
+        },
+
+        themeColors: [
+            { name: 'cyan', hex: '#00d4ff', unlock_level: 1 },
+            { name: 'blue', hex: '#3366ff', unlock_level: 1 },
+            { name: 'purple', hex: '#8338ec', unlock_level: 1 },
+            { name: 'lime', hex: '#39ff14', unlock_level: 3 },
+            { name: 'magenta', hex: '#ff006e', unlock_level: 3 },
+            { name: 'gold', hex: '#ffd700', unlock_level: 5 },
+            { name: 'red', hex: '#ff3333', unlock_level: 7 },
+        ],
+
+        async loadProfile() {
+            try {
+                const res = await fetch('/api/profile');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                this.username = data.username;
+                this.profileIcon = data.icon;
+                this.level = data.level;
+                this.levelName = data.level_name;
+                this.xp = data.xp;
+                this.nextLevelXp = data.next_level_xp;
+                this.progressPct = data.progress_pct;
+                this.streakCurrent = data.streak_current;
+                this.streakBest = data.streak_best;
+                this.fireMode = data.fire_mode;
+                this.currentTheme = data.theme_color;
+
+                // Update mission icon earned status
+                if (data.available_icons) {
+                    for (const mi of this.missionIcons) {
+                        mi.earned = data.available_icons.includes(mi.id);
+                    }
+                }
+
+                // Load achievements
+                this.achievementsUnlocked = data.achievements_unlocked || 0;
+                this.recentAchievements = data.recent_achievements || [];
+
+                // Load full catalog
+                const catRes = await fetch('/api/achievements/catalog');
+                if (catRes.ok) {
+                    const catData = await catRes.json();
+                    this.catalog = catData.achievements || [];
+                }
+            } catch (e) {
+                console.error('Failed to load profile:', e);
+            }
+        },
+
+        catalogByCategory(cat) {
+            return this.catalog.filter(a => a.category === cat);
+        },
+
+        async selectIcon(icon) {
+            try {
+                const res = await fetch('/api/profile/icon', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ icon })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+                this.profileIcon = icon;
+                this.flash('Icon updated!', 'success');
+            } catch (e) {
+                this.flash('Failed to update icon', 'error');
+            }
+        },
+
+        async selectTheme(theme) {
+            try {
+                const res = await fetch('/api/profile/theme', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme_color: theme })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+                this.currentTheme = theme;
+                // Update body class immediately
+                document.body.className = document.body.className.replace(/theme-\w+/, 'theme-' + theme);
+                this.flash('Theme updated!', 'success');
+            } catch (e) {
+                this.flash('Failed to update theme', 'error');
+            }
+        },
+
+        flash(msg, type = 'success') {
+            this.flashMsg = msg;
+            this.flashType = type;
+            setTimeout(() => { this.flashMsg = ''; }, 3000);
+        }
+    }));
+});
+</script>
+{% endblock %}

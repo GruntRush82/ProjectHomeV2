@@ -72,6 +72,10 @@ def _grant_mission_reward(assignment):
 
     db.session.commit()
 
+    # Grant mission completion XP
+    from app.services.xp import grant_xp
+    grant_xp(user.id, 500, "mission_complete")
+
 
 # ── page routes ──────────────────────────────────────────────────────
 

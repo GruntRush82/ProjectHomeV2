@@ -56,6 +56,7 @@ def _register_blueprints(flask_app):
     from app.blueprints.users import users_bp
     from app.blueprints.bank import bank_bp
     from app.blueprints.missions import missions_bp
+    from app.blueprints.achievements import achievements_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(calendar_bp)
@@ -64,6 +65,7 @@ def _register_blueprints(flask_app):
     flask_app.register_blueprint(users_bp)
     flask_app.register_blueprint(bank_bp)
     flask_app.register_blueprint(missions_bp)
+    flask_app.register_blueprint(achievements_bp)
 
 
 def _register_auth_hook(flask_app):
@@ -76,6 +78,12 @@ def _register_auth_hook(flask_app):
 def _register_context_processors(flask_app):
     """Make current_user and idle_timeout available in every template."""
     from app.models.user import User
+    from app.blueprints.achievements import ICON_ID_TO_EMOJI
+
+    @flask_app.template_filter("icon_emoji")
+    def icon_emoji_filter(icon):
+        """Convert icon ID to emoji. Passes through if already an emoji."""
+        return ICON_ID_TO_EMOJI.get(icon, icon)
 
     @flask_app.context_processor
     def inject_current_user():

@@ -29,6 +29,17 @@
             </button>
         </section>
 
+        <!-- Fire Mode allowance indicator -->
+        {% if current_user and current_user.fire_mode %}
+        <section class="bank-fire-mode-banner">
+            <span class="fire-mode-icon">&#128293;</span>
+            <div class="fire-mode-info">
+                <div class="fire-mode-title">FIRE MODE ACTIVE</div>
+                <div class="fire-mode-bonus">+50% Allowance Boost &mdash; ${{ "%.2f"|format(current_user.allowance or 0) }} &rarr; ${{ "%.2f"|format((current_user.allowance or 0) * 1.5) }}</div>
+            </div>
+        </section>
+        {% endif %}
+
         <!-- Cash + Savings overview row -->
         <div class="bank-overview-row">
             <!-- Cash card -->

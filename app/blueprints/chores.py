@@ -62,11 +62,15 @@ def _update_streaks():
         total = len(user_chores)
         done = sum(1 for c in user_chores if c.completed)
         if done == total:
-            user.streak_current += 1
+            user.streak_current = (user.streak_current or 0) + 1
+            user.perfect_weeks_total = (user.perfect_weeks_total or 0) + 1
             if user.streak_current > user.streak_best:
                 user.streak_best = user.streak_current
+            # Fire Mode: activate at 3+ consecutive perfect weeks
+            user.fire_mode = user.streak_current >= 3
         else:
             user.streak_current = 0
+            user.fire_mode = False
 
 
 def _process_allowance_and_interest():
@@ -74,6 +78,8 @@ def _process_allowance_and_interest():
     from app.models.bank import BankAccount, Transaction
     from app.services.allowance import calculate_allowance
     from app.services.interest import credit_interest
+    from app.services.xp import grant_xp
+    from app.services.achievements import check_achievements
 
     now = datetime.utcnow()
 
@@ -92,6 +98,10 @@ def _process_allowance_and_interest():
 
         earned = calculate_allowance(total, completed, user.allowance or 0)
 
+        # Fire Mode: 50% allowance boost
+        if user.fire_mode and earned > 0:
+            earned = round(earned * 1.5, 2)
+
         # Get or create bank account
         account = BankAccount.query.filter_by(user_id=user.id).first()
         if not account:
@@ -101,19 +111,41 @@ def _process_allowance_and_interest():
 
         # Deposit allowance
         if earned > 0:
+            desc_parts = [
+                f"Weekly allowance ({completed}/{total} chores, "
+                f"{'full' if completed == total else 'half'})"
+            ]
+            if user.fire_mode:
+                desc_parts.append(" +50% FIRE MODE")
             account.cash_balance += earned
             db.session.add(Transaction(
                 user_id=user.id,
                 type=Transaction.TYPE_ALLOWANCE,
                 amount=earned,
                 balance_after=round(account.cash_balance, 2),
-                description=f"Weekly allowance ({completed}/{total} chores, "
-                            f"{'full' if completed == total else 'half'})",
+                description="".join(desc_parts),
                 created_at=now,
             ))
 
+        # Weekly bonus XP: 100% week doubles chore XP
+        if total > 0 and completed == total:
+            # Calculate what chore XP was earned this week
+            bonus_xp = 0
+            for h in history:
+                bonus_xp += 25 if h.rotation_type == "rotating" else 10
+            if bonus_xp > 0:
+                grant_xp(user.id, bonus_xp, "weekly_bonus")
+
         # Credit interest on savings
         credit_interest(user.id)
+
+        # Check interest achievement
+        db.session.refresh(account)
+        if account.total_interest_earned > 0:
+            check_achievements(user.id, "interest_credited")
+
+        # Check weekly reset achievements (streaks, perfect weeks)
+        check_achievements(user.id, "weekly_reset")
 
     db.session.commit()
 
@@ -226,6 +258,7 @@ def update_chore(id):
 
     description = data.get("description")
     completed = data.get("completed")
+    was_completed = chore.completed
 
     if description is not None:
         chore.description = description
@@ -233,11 +266,25 @@ def update_chore(id):
         chore.completed = completed
 
     db.session.commit()
-    return jsonify({
+
+    response = {
         "id": chore.id,
         "description": chore.description,
         "completed": chore.completed,
-    }), 200
+    }
+
+    # Grant XP on completion (False→True only, no undo deduction)
+    if completed is True and not was_completed and chore.user_id:
+        from app.services.xp import grant_xp
+        from app.services.achievements import check_achievements
+
+        xp_amount = 25 if chore.rotation_type == "rotating" else 10
+        xp_result = grant_xp(chore.user_id, xp_amount, "chore_complete")
+        achievements = check_achievements(chore.user_id, "chore_complete")
+        response["xp"] = xp_result
+        response["achievements"] = achievements
+
+    return jsonify(response), 200
 
 
 @chores_bp.route("/chores/<int:id>", methods=["DELETE"])
