@@ -1,11 +1,16 @@
 """Grocery list routes."""
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, render_template, request, session
 
 from app.extensions import db
 from app.models.grocery import GroceryItem
 
 grocery_bp = Blueprint("grocery", __name__)
+
+
+@grocery_bp.route("/grocery-page", methods=["GET"])
+def grocery_page():
+    return render_template("grocery.html", active_nav="grocery")
 
 
 @grocery_bp.route("/grocery", methods=["GET"])

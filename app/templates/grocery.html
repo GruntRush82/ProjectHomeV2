@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Grocery — Felker Family Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Grocery List</h1>
+</div>
+
+<section class="grocery-panel">
+    <div class="grocery-input-row">
+        <input type="text" id="grocery-input" placeholder="Add an item...">
+        <select id="grocery-user-select">
+            <option value="" disabled selected>Who's adding?</option>
+        </select>
+        <button id="grocery-add-btn">Add</button>
+    </div>
+
+    <ul class="grocery-list" id="grocery-list">
+        <!-- populated by JS -->
+    </ul>
+
+    <div class="grocery-actions">
+        <select id="grocery-send-select">
+            <option value="" disabled selected>Send to...</option>
+        </select>
+        <button class="grocery-send-btn" id="grocery-send-btn">Send List</button>
+        <button class="grocery-clear-btn" id="grocery-clear-btn">Clear All</button>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Populate user dropdowns
+    function refreshDropdowns() {
+        fetch("/users")
+            .then(res => res.json())
+            .then(users => {
+                const dropdowns = [
+                    document.getElementById("grocery-user-select"),
+                    document.getElementById("grocery-send-select")
+                ];
+                dropdowns.forEach(sel => {
+                    if (!sel) return;
+                    const val = sel.value;
+                    while (sel.options.length > 1) sel.remove(1);
+                    users.forEach(u => {
+                        const opt = document.createElement("option");
+                        opt.value = (sel.id === "grocery-send-select") ? u.username : u.id;
+                        opt.textContent = u.username;
+                        sel.appendChild(opt);
+                    });
+                    if (val) sel.value = val;
+                });
+            });
+    }
+    refreshDropdowns();
+
+    // Load grocery list
+    function loadGrocery() {
+        fetch("/grocery")
+            .then(res => res.json())
+            .then(items => {
+                const list = document.getElementById("grocery-list");
+                list.innerHTML = "";
+                if (items.length === 0) {
+                    list.innerHTML = '<li class="grocery-empty">No items yet. Add something!</li>';
+                    return;
+                }
+                items.forEach(item => {
+                    const li = document.createElement("li");
+                    li.className = "grocery-item";
+                    li.innerHTML = `
+                        <div>
+                            <span class="grocery-item-name">${item.item_name}</span>
+                            <span class="grocery-item-by">by ${item.added_by}</span>
+                        </div>
+                        <button class="grocery-item-delete" onclick="deleteGroceryItem(${item.id})">Remove</button>
+                    `;
+                    list.appendChild(li);
+                });
+            });
+    }
+    loadGrocery();
+
+    // Add item
+    document.getElementById("grocery-add-btn").addEventListener("click", () => {
+        const input = document.getElementById("grocery-input");
+        const userSel = document.getElementById("grocery-user-select");
+        const itemName = input.value.trim();
+        const addedBy = userSel.options[userSel.selectedIndex]?.text || "";
+        if (!itemName || !userSel.value) return;
+        fetch("/grocery", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ item_name: itemName, added_by: addedBy })
+        }).then(res => {
+            if (res.ok) { input.value = ""; loadGrocery(); }
+        });
+    });
+
+    // Enter key
+    document.getElementById("grocery-input").addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("grocery-add-btn").click();
+        }
+    });
+
+    // Send list
+    document.getElementById("grocery-send-btn").addEventListener("click", () => {
+        const sel = document.getElementById("grocery-send-select");
+        if (!sel.value) return;
+        fetch("/grocery/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipient_username: sel.value })
+        })
+        .then(res => res.json())
+        .then(data => { alert(data.message || data.error); loadGrocery(); });
+    });
+
+    // Clear all
+    document.getElementById("grocery-clear-btn").addEventListener("click", () => {
+        if (!confirm("Clear the entire grocery list?")) return;
+        fetch("/grocery/clear", { method: "DELETE" }).then(() => loadGrocery());
+    });
+
+    // Global delete helper
+    window.deleteGroceryItem = function(id) {
+        fetch(`/grocery/${id}`, { method: "DELETE" }).then(() => loadGrocery());
+    };
+});
+</script>
+{% endblock %}

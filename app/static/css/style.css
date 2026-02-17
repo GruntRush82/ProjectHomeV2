@@ -936,8 +936,8 @@ form button[type="submit"]:hover {
 }
 
 .user-card-admin {
-  font-size: 10px;
-  padding: 2px 8px;
+  font-size: 9px;
+  padding: 1px 6px;
   border-radius: 999px;
   background: rgba(251, 191, 36, 0.15);
   color: #fbbf24;
@@ -945,6 +945,7 @@ form button[type="submit"]:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 4px;
+  text-align: center;
 }
 
 /* ---------- PIN page ---------- */

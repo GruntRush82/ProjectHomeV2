@@ -10,17 +10,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return DAYS[(new Date().getDay() + 6) % 7];
     }
 
-    // ==================== Tab switching ====================
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-            btn.classList.add("active");
-            document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-            if (btn.dataset.tab === "grocery") loadGrocery();
-        });
-    });
-
     // ==================== Cheer sound guard ====================
     window.allowCheer = false;
     const audio = document.getElementById('cheer-sound');
@@ -110,9 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 allUsers = users;
                 const dropdowns = [
                     document.getElementById("user-select"),
-                    document.getElementById("rotation-user-select"),
-                    document.getElementById("grocery-user-select"),
-                    document.getElementById("grocery-send-select")
+                    document.getElementById("rotation-user-select")
                 ];
                 dropdowns.forEach(sel => {
                     if (!sel) return;
@@ -121,7 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     while (sel.options.length > 1) sel.remove(1);
                     users.forEach(u => {
                         const opt = document.createElement("option");
-                        opt.value = (sel.id === "rotation-user-select" || sel.id === "grocery-send-select")
+                        opt.value = (sel.id === "rotation-user-select")
                             ? u.username : u.id;
                         opt.textContent = u.username;
                         sel.appendChild(opt);
@@ -359,86 +346,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ==================== Grocery List ====================
-    function loadGrocery() {
-        fetch("/grocery")
-            .then(res => res.json())
-            .then(items => {
-                const list = document.getElementById("grocery-list");
-                list.innerHTML = "";
-                if (items.length === 0) {
-                    list.innerHTML = '<li class="grocery-empty">No items yet. Add something!</li>';
-                    return;
-                }
-                items.forEach(item => {
-                    const li = document.createElement("li");
-                    li.className = "grocery-item";
-                    li.innerHTML = `
-                        <div>
-                            <span class="grocery-item-name">${item.item_name}</span>
-                            <span class="grocery-item-by">by ${item.added_by}</span>
-                        </div>
-                        <button class="grocery-item-delete" onclick="deleteGroceryItem(${item.id})">Remove</button>
-                    `;
-                    list.appendChild(li);
-                });
-            });
-    }
-
-    // Add grocery item
-    document.getElementById("grocery-add-btn").addEventListener("click", () => {
-        const input = document.getElementById("grocery-input");
-        const userSel = document.getElementById("grocery-user-select");
-        const itemName = input.value.trim();
-        const addedBy = userSel.options[userSel.selectedIndex]?.text || "";
-
-        if (!itemName || !userSel.value) return;
-
-        fetch("/grocery", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ item_name: itemName, added_by: addedBy })
-        }).then(res => {
-            if (res.ok) {
-                input.value = "";
-                loadGrocery();
-            }
-        });
-    });
-
-    // Enter key for grocery input
-    document.getElementById("grocery-input").addEventListener("keydown", e => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            document.getElementById("grocery-add-btn").click();
-        }
-    });
-
-    // Send grocery list
-    document.getElementById("grocery-send-btn").addEventListener("click", () => {
-        const sel = document.getElementById("grocery-send-select");
-        const recipient = sel.value;
-        if (!recipient) return;
-
-        fetch("/grocery/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ recipient_username: recipient })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(data.message || data.error);
-            loadGrocery();
-        });
-    });
-
-    // Clear grocery list
-    document.getElementById("grocery-clear-btn").addEventListener("click", () => {
-        if (!confirm("Clear the entire grocery list?")) return;
-        fetch("/grocery/clear", { method: "DELETE" })
-            .then(() => loadGrocery());
-    });
-
     // ==================== Delete user handler (delegated) ====================
     document.addEventListener("click", (e) => {
         if (e.target.classList.contains("delete-user")) {
@@ -481,33 +388,6 @@ function editChore(id) {
             body: JSON.stringify({ description: newDesc })
         }).then(() => window.loadChores());
     }
-}
-
-function deleteGroceryItem(id) {
-    fetch(`/grocery/${id}`, { method: 'DELETE' })
-        .then(() => {
-            // Reload grocery list
-            const list = document.getElementById("grocery-list");
-            fetch("/grocery").then(r => r.json()).then(items => {
-                list.innerHTML = "";
-                if (items.length === 0) {
-                    list.innerHTML = '<li class="grocery-empty">No items yet. Add something!</li>';
-                    return;
-                }
-                items.forEach(item => {
-                    const li = document.createElement("li");
-                    li.className = "grocery-item";
-                    li.innerHTML = `
-                        <div>
-                            <span class="grocery-item-name">${item.item_name}</span>
-                            <span class="grocery-item-by">by ${item.added_by}</span>
-                        </div>
-                        <button class="grocery-item-delete" onclick="deleteGroceryItem(${item.id})">Remove</button>
-                    `;
-                    list.appendChild(li);
-                });
-            });
-        });
 }
 
 function toggleCompleted(id) {

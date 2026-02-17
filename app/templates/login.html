@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.1.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.1.2">
 </head>
 <body>
     <div class="login-page">
@@ -33,10 +33,10 @@
                         {% set level_names = {1:'Rookie',2:'Apprentice',3:'Helper',4:'Star',5:'Champion',6:'Hero',7:'Legend',8:'Master',9:'Titan',10:'Ultimate'} %}
                         Lv{{ user.level }} &middot; {{ level_names.get(user.level, 'Rookie') }}
                     </div>
-                    {% if user.is_admin %}
-                    <div class="user-card-admin">Admin</div>
-                    {% endif %}
                 </button>
+                {% if user.is_admin %}
+                <div class="user-card-admin">Admin</div>
+                {% endif %}
             </form>
             {% endfor %}
         </div>

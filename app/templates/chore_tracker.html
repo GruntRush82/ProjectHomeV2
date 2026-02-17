@@ -12,14 +12,8 @@
     <h1>Chores</h1>
 </div>
 
-<!-- Tab Navigation -->
-<div class="tab-bar">
-    <button class="tab-btn active" data-tab="chores">Chores</button>
-    <button class="tab-btn" data-tab="grocery">Grocery List</button>
-</div>
-
-<!-- ======================== CHORES TAB ======================== -->
-<div id="tab-chores" class="tab-panel active">
+<!-- ======================== CHORES ======================== -->
+<div id="tab-chores">
 
     <!-- Create User Form -->
     <section>
@@ -87,32 +81,6 @@
     </section>
 </div>
 
-<!-- ======================== GROCERY TAB ======================== -->
-<div id="tab-grocery" class="tab-panel">
-    <section class="grocery-panel">
-        <h2>Grocery List</h2>
-
-        <div class="grocery-input-row">
-            <input type="text" id="grocery-input" placeholder="Add an item...">
-            <select id="grocery-user-select">
-                <option value="" disabled selected>Who's adding?</option>
-            </select>
-            <button id="grocery-add-btn">Add</button>
-        </div>
-
-        <ul class="grocery-list" id="grocery-list">
-            <!-- populated by JS -->
-        </ul>
-
-        <div class="grocery-actions">
-            <select id="grocery-send-select">
-                <option value="" disabled selected>Send to...</option>
-            </select>
-            <button class="grocery-send-btn" id="grocery-send-btn">Send List</button>
-            <button class="grocery-clear-btn" id="grocery-clear-btn">Clear All</button>
-        </div>
-    </section>
-</div>
 {% endblock %}
 
 {% block scripts %}
