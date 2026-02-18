@@ -890,33 +890,7 @@ form button[type="submit"]:hover {
   background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0%, transparent 70%);
 }
 
-/* level-based card effects */
-.user-card[data-level="1"],
-.user-card[data-level="2"],
-.user-card[data-level="3"] {
-  /* clean, standard */
-}
-.user-card[data-level="4"],
-.user-card[data-level="5"] {
-  border-color: rgba(0, 212, 255, 0.15);
-  box-shadow: 0 0 16px rgba(0, 212, 255, 0.06);
-}
-.user-card[data-level="6"],
-.user-card[data-level="7"] {
-  border-color: rgba(0, 212, 255, 0.2);
-  box-shadow: 0 0 24px rgba(0, 212, 255, 0.08);
-}
-.user-card[data-level="8"],
-.user-card[data-level="9"] {
-  border-color: rgba(255, 215, 0, 0.2);
-  box-shadow: 0 0 32px rgba(255, 215, 0, 0.08);
-  animation: cardGlow 3s ease-in-out infinite;
-}
-.user-card[data-level="10"] {
-  border-color: rgba(255, 215, 0, 0.3);
-  box-shadow: 0 0 40px rgba(255, 215, 0, 0.12);
-  animation: cardGlow 2s ease-in-out infinite;
-}
+/* level-based card effects are in the "Login cards by level" section below */
 
 @keyframes cardGlow {
   0%, 100% { box-shadow: 0 0 24px rgba(255, 215, 0, 0.08); }
@@ -2708,7 +2682,7 @@ form button[type="submit"]:hover {
    Level Visual Effects — Progressive CSS on login cards & app-wide
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── Login cards by level ────────────────────────────────────────────── */
+/* ── Login cards by level — pure box-shadow, no pseudo-elements ───── */
 
 /* L4-5: Subtle pulsing glow */
 .user-card[data-level="4"],
@@ -2716,113 +2690,54 @@ form button[type="submit"]:hover {
   animation: card-glow-4 3s ease-in-out infinite;
 }
 @keyframes card-glow-4 {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 0 12px rgba(var(--accent-rgb, 0,212,255),0.15); }
-  50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 0 24px rgba(var(--accent-rgb, 0,212,255),0.25); }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.25), 0 0 14px rgba(var(--accent-rgb, 0,212,255),0.2); }
+  50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.25), 0 0 28px rgba(var(--accent-rgb, 0,212,255),0.35); }
 }
 
-/* L6-7: Animated gradient border + brighter glow */
+/* L6-7: Accent outline + stronger glow */
 .user-card[data-level="6"],
 .user-card[data-level="7"] {
+  outline: 1px solid rgba(var(--accent-rgb, 0,212,255),0.4);
+  outline-offset: 1px;
   animation: card-glow-6 2.5s ease-in-out infinite;
-  position: relative;
-}
-.user-card[data-level="6"]::before,
-.user-card[data-level="7"]::before {
-  content: ''; position: absolute; inset: -2px; border-radius: inherit;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2, #8338ec), var(--accent));
-  background-size: 200% 200%;
-  animation: gradient-rotate 4s linear infinite;
-  z-index: -1; opacity: 0.5;
 }
 @keyframes card-glow-6 {
-  0%, 100% { box-shadow: 0 0 20px rgba(var(--accent-rgb, 0,212,255),0.2); }
-  50% { box-shadow: 0 0 40px rgba(var(--accent-rgb, 0,212,255),0.35); }
-}
-@keyframes gradient-rotate {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.25), 0 0 20px rgba(var(--accent-rgb, 0,212,255),0.3), 0 0 40px rgba(131,56,236,0.15); }
+  50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.25), 0 0 36px rgba(var(--accent-rgb, 0,212,255),0.5), 0 0 64px rgba(131,56,236,0.25); }
 }
 
-/* L8-9: Rotating gradient border + sparkle */
+/* L8-9: Gold outline + intense dual-color glow */
 .user-card[data-level="8"],
 .user-card[data-level="9"] {
+  outline: 2px solid rgba(255,215,0,0.5);
+  outline-offset: 2px;
   animation: card-glow-8 2s ease-in-out infinite;
-  position: relative;
-}
-.user-card[data-level="8"]::before,
-.user-card[data-level="9"]::before {
-  content: ''; position: absolute; inset: -2px; border-radius: inherit;
-  background: conic-gradient(from 0deg, var(--accent), var(--accent-2, #8338ec), #ffd700, var(--accent));
-  animation: conic-spin 3s linear infinite;
-  z-index: -1; opacity: 0.6;
-}
-.user-card[data-level="8"]::after,
-.user-card[data-level="9"]::after {
-  content: '\u2728'; position: absolute; top: -8px; right: -4px;
-  font-size: 1.2rem; animation: sparkle-float 2s ease-in-out infinite;
 }
 @keyframes card-glow-8 {
-  0%, 100% { box-shadow: 0 0 24px rgba(var(--accent-rgb, 0,212,255),0.25); }
-  50% { box-shadow: 0 0 48px rgba(var(--accent-rgb, 0,212,255),0.4); }
-}
-@keyframes conic-spin {
-  to { background: conic-gradient(from 360deg, var(--accent), var(--accent-2, #8338ec), #ffd700, var(--accent)); }
-}
-@keyframes sparkle-float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
-  50% { transform: translateY(-6px) scale(1.2); opacity: 0.7; }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.25), 0 0 24px rgba(var(--accent-rgb, 0,212,255),0.3), 0 0 48px rgba(255,215,0,0.2); }
+  50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15), 0 8px 32px rgba(0,0,0,0.25), 0 0 44px rgba(var(--accent-rgb, 0,212,255),0.5), 0 0 80px rgba(255,215,0,0.35); }
 }
 
-/* L10: Full animated — ultimate tier */
+/* L10: Full rainbow glow + scale pulse */
 .user-card[data-level="10"] {
+  outline: 2px solid rgba(255,215,0,0.6);
+  outline-offset: 3px;
   animation: card-ultimate 2s ease-in-out infinite;
-  position: relative;
-  overflow: visible;
-}
-.user-card[data-level="10"]::before {
-  content: ''; position: absolute; inset: -3px; border-radius: inherit;
-  background: conic-gradient(from 0deg, #ffd700, #ff6600, #ff00ff, #00d4ff, #39ff14, #ffd700);
-  background-size: 100% 100%;
-  animation: rainbow-spin 2s linear infinite;
-  z-index: -1; opacity: 0.7;
-}
-.user-card[data-level="10"]::after {
-  content: '\u{1F451}'; position: absolute; top: -16px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.4rem; animation: crown-bob 1.5s ease-in-out infinite;
 }
 @keyframes card-ultimate {
-  0%, 100% { box-shadow: 0 0 30px rgba(255,215,0,0.3), 0 0 60px rgba(255,215,0,0.1); }
-  50% { box-shadow: 0 0 50px rgba(255,215,0,0.5), 0 0 100px rgba(255,215,0,0.2); }
-}
-@keyframes rainbow-spin {
-  to { filter: hue-rotate(360deg); }
-}
-@keyframes crown-bob {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(-6px); }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.25), 0 0 30px rgba(255,215,0,0.4), 0 0 60px rgba(255,0,255,0.2), 0 0 90px rgba(0,212,255,0.15); transform: scale(1); }
+  50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15), 0 8px 32px rgba(0,0,0,0.25), 0 0 50px rgba(255,215,0,0.6), 0 0 100px rgba(255,0,255,0.35), 0 0 140px rgba(0,212,255,0.25); transform: scale(1.02); }
 }
 
 /* ── Fire Mode login card ────────────────────────────────────────────── */
 .user-card[data-fire-mode="true"] {
-  position: relative;
+  outline: 2px solid #ff6600;
+  outline-offset: 2px;
+  animation: fire-card-glow 1.5s ease-in-out infinite;
 }
-.user-card[data-fire-mode="true"]::before {
-  content: ''; position: absolute; inset: -3px; border-radius: inherit;
-  background: linear-gradient(135deg, #ff6600, #ff3300, #ff6600, #ff9900);
-  background-size: 300% 300%;
-  animation: fire-border 1.5s ease-in-out infinite;
-  z-index: -1; opacity: 0.7;
-}
-.user-card[data-fire-mode="true"]::after {
-  content: '\u{1F525}'; position: absolute; top: -10px; right: -6px;
-  font-size: 1.3rem; animation: fire-bob 0.6s ease-in-out infinite alternate;
-}
-@keyframes fire-border {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes fire-card-glow {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.25), 0 0 16px rgba(255,100,0,0.4), 0 0 32px rgba(255,50,0,0.2); }
+  50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.25), 0 0 28px rgba(255,100,0,0.7), 0 0 56px rgba(255,50,0,0.35); }
 }
 
 /* ── App-wide level effects ──────────────────────────────────────────── */
