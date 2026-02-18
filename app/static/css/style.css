@@ -182,6 +182,8 @@ a:hover { text-decoration: underline; }
   align-items: center;
   justify-content: center;
   font-size: 14px;
+  position: relative;
+  overflow: visible;
 }
 
 .nav-level-badge {
@@ -853,7 +855,7 @@ form button[type="submit"]:hover {
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-  overflow: hidden;
+  overflow: visible;
   /* Float effect — lifted above the card surface */
   transform: translateY(-8px);
   box-shadow:

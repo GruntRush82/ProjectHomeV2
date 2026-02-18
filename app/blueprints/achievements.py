@@ -153,6 +153,16 @@ ICON_ID_TO_EMOJI = {
     "golden_music_note": "\U0001f3b5\u2728",
 }
 
+# Icon ID → CSS class mapping (for server-side rendering)
+ICON_ID_TO_CSS = {
+    "shield": "icon-enhanced", "crown": "icon-enhanced",
+    "dragon_face": "icon-glowing", "phoenix": "icon-glowing",
+    "thunder": "icon-premium", "flame": "icon-premium",
+    "galaxy": "icon-ultimate", "infinity": "icon-ultimate",
+    "lightning_brain": "icon-mission-lightning",
+    "golden_music_note": "icon-mission-music",
+}
+
 # Theme colour unlock levels
 THEME_UNLOCK = {
     "cyan": 1, "blue": 1, "purple": 1,

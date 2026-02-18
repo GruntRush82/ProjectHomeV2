@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.3.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.3.2">
 </head>
 <body>
     <div class="login-page">
@@ -21,7 +21,7 @@
             <form class="user-card-form" method="POST" action="/session">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <button type="submit" class="user-card" data-level="{{ user.level }}" data-fire-mode="{{ 'true' if user.fire_mode else 'false' }}">
-                    <div class="user-card-avatar">
+                    <div class="user-card-avatar {{ user.icon | icon_css }}">
                         {{ user.icon | icon_emoji }}
                     </div>
                     <div class="user-card-name">{{ user.username }}</div>
