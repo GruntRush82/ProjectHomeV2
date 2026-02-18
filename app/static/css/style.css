@@ -2551,98 +2551,106 @@ form button[type="submit"]:hover {
   border-radius: 4px; color: rgba(255,255,255,0.7);
 }
 
-/* Level-unlocked icon styles — pure box-shadow, no pseudo-elements */
+/* Level-unlocked icon styles — high-contrast, no pseudo-elements */
 
-/* L3 Enhanced: accent ring + pulsing glow */
+/* L3 Enhanced: purple gradient bg + white ring */
 .icon-enhanced {
-  outline: 2px solid var(--accent, #00d4ff);
-  outline-offset: 2px;
+  background: linear-gradient(135deg, #8338ec, #00d4ff) !important;
+  outline: 2px solid rgba(255,255,255,0.7);
+  outline-offset: 3px;
   animation: icon-enhanced-pulse 2.5s ease-in-out infinite;
 }
 @keyframes icon-enhanced-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(var(--accent-rgb, 0,212,255),0.4), inset 0 0 8px rgba(var(--accent-rgb, 0,212,255),0.15); }
-  50% { box-shadow: 0 0 22px rgba(var(--accent-rgb, 0,212,255),0.7), inset 0 0 12px rgba(var(--accent-rgb, 0,212,255),0.25); }
+  0%, 100% { box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 14px rgba(131,56,236,0.5), 0 0 28px rgba(131,56,236,0.2) !important; }
+  50% { box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 24px rgba(131,56,236,0.7), 0 0 48px rgba(131,56,236,0.35) !important; }
 }
 
-/* L5 Glowing: double ring + strong breathing glow */
+/* L5 Glowing: magenta-purple gradient bg + bright white ring + strong glow */
 .icon-glowing {
-  outline: 2px solid var(--accent, #00d4ff);
-  outline-offset: 3px;
+  background: linear-gradient(135deg, #ff006e, #8338ec) !important;
+  outline: 3px solid rgba(255,255,255,0.85);
+  outline-offset: 4px;
   animation: icon-glow-breathe 2s ease-in-out infinite;
 }
 @keyframes icon-glow-breathe {
   0%, 100% {
-    box-shadow: 0 0 14px rgba(var(--accent-rgb, 0,212,255),0.5),
-                0 0 28px rgba(131,56,236,0.25),
-                inset 0 0 10px rgba(var(--accent-rgb, 0,212,255),0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4),
+                0 0 18px rgba(255,0,110,0.5),
+                0 0 36px rgba(131,56,236,0.3) !important;
   }
   50% {
-    box-shadow: 0 0 24px rgba(var(--accent-rgb, 0,212,255),0.8),
-                0 0 48px rgba(131,56,236,0.4),
-                inset 0 0 16px rgba(var(--accent-rgb, 0,212,255),0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4),
+                0 0 30px rgba(255,0,110,0.7),
+                0 0 60px rgba(131,56,236,0.5) !important;
   }
 }
 
-/* L7 Premium: gold ring + intense dual-color glow */
+/* L7 Premium: gold-orange gradient bg + gold ring + intense glow */
 .icon-premium {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
+  background: linear-gradient(135deg, #ffd700, #ff6600) !important;
+  outline: 3px solid rgba(255,255,255,0.9);
+  outline-offset: 4px;
   animation: icon-premium-glow 1.8s ease-in-out infinite;
 }
 @keyframes icon-premium-glow {
   0%, 100% {
-    box-shadow: 0 0 16px rgba(255,215,0,0.5),
-                0 0 32px rgba(var(--accent-rgb, 0,212,255),0.25),
-                0 0 48px rgba(255,100,0,0.15),
-                inset 0 0 12px rgba(255,215,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4),
+                0 0 20px rgba(255,215,0,0.6),
+                0 0 40px rgba(255,100,0,0.3) !important;
   }
   50% {
-    box-shadow: 0 0 28px rgba(255,215,0,0.8),
-                0 0 56px rgba(var(--accent-rgb, 0,212,255),0.4),
-                0 0 72px rgba(255,100,0,0.25),
-                inset 0 0 18px rgba(255,215,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4),
+                0 0 34px rgba(255,215,0,0.85),
+                0 0 68px rgba(255,100,0,0.5) !important;
   }
 }
 
-/* L10 Ultimate: rainbow glow + scale pulse */
+/* L10 Ultimate: rainbow gradient bg + gold ring + massive glow + scale */
 .icon-ultimate {
-  outline: 3px solid #ffd700;
-  outline-offset: 4px;
-  animation: icon-ultimate-glow 1.5s ease-in-out infinite;
+  background: linear-gradient(135deg, #ffd700, #ff00ff, #00d4ff, #39ff14) !important;
+  background-size: 300% 300% !important;
+  outline: 3px solid rgba(255,255,255,0.95);
+  outline-offset: 5px;
+  animation: icon-ultimate-glow 1.5s ease-in-out infinite, icon-ultimate-bg 3s linear infinite;
 }
 @keyframes icon-ultimate-glow {
   0%, 100% {
-    box-shadow: 0 0 18px rgba(255,215,0,0.6),
-                0 0 36px rgba(255,0,255,0.3),
-                0 0 54px rgba(0,212,255,0.2),
-                0 0 72px rgba(57,255,20,0.1),
-                inset 0 0 14px rgba(255,215,0,0.25);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4),
+                0 0 24px rgba(255,215,0,0.6),
+                0 0 48px rgba(255,0,255,0.4),
+                0 0 72px rgba(0,212,255,0.2) !important;
     transform: translateY(-8px) scale(1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(255,215,0,0.9),
-                0 0 60px rgba(255,0,255,0.5),
-                0 0 90px rgba(0,212,255,0.35),
-                0 0 110px rgba(57,255,20,0.2),
-                inset 0 0 20px rgba(255,215,0,0.35);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4),
+                0 0 40px rgba(255,215,0,0.85),
+                0 0 80px rgba(255,0,255,0.6),
+                0 0 120px rgba(0,212,255,0.35) !important;
     transform: translateY(-8px) scale(1.06);
   }
+}
+@keyframes icon-ultimate-bg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* Mission-earned icon styles */
 .icon-mission-lightning {
-  outline: 2px solid #ffd700;
-  outline-offset: 2px;
+  background: linear-gradient(135deg, #ffd700, #ff6600) !important;
+  outline: 2px solid rgba(255,255,255,0.7);
+  outline-offset: 3px;
   animation: icon-mission-glow 2s ease-in-out infinite;
 }
 .icon-mission-music {
-  outline: 2px solid #c0c0c0;
-  outline-offset: 2px;
+  background: linear-gradient(135deg, #ffd700, #c0c0c0) !important;
+  outline: 2px solid rgba(255,255,255,0.7);
+  outline-offset: 3px;
   animation: icon-mission-glow 2s ease-in-out infinite;
 }
 @keyframes icon-mission-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.4), inset 0 0 8px rgba(255,215,0,0.15); }
-  50% { box-shadow: 0 0 20px rgba(255,215,0,0.7), inset 0 0 12px rgba(255,215,0,0.25); }
+  0%, 100% { box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 14px rgba(255,215,0,0.5), 0 0 28px rgba(255,100,0,0.3) !important; }
+  50% { box-shadow: 0 4px 12px rgba(0,0,0,0.4), 0 0 24px rgba(255,215,0,0.8), 0 0 48px rgba(255,100,0,0.5) !important; }
 }
 
 /* Theme swatch grid */
