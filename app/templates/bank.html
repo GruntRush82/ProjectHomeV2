@@ -99,13 +99,84 @@
                             <span class="coin coin-3" x-show="dep.amount >= 10">&#129689;</span>
                             <span class="coin coin-4" x-show="dep.amount >= 50">&#129689;</span>
                         </div>
-                        <!-- Ice overlay — opacity decreases as melt_percent increases -->
+                        <!-- Ice overlay — SVG crystal + shimmer + drip -->
                         <div class="vault-ice"
                              x-show="dep.locked"
-                             :style="'opacity:' + (1 - dep.melt_percent / 100 * 0.7)
-                                   + '; backdrop-filter: blur(' + Math.max(0, 8 - dep.melt_percent / 100 * 8) + 'px)'">
-                            <div class="ice-crack" x-show="dep.melt_percent > 30"></div>
-                            <div class="ice-crack ice-crack-2" x-show="dep.melt_percent > 60"></div>
+                             :style="`--melt:${dep.melt_percent/100}; opacity:${1 - dep.melt_percent/100*0.8}; backdrop-filter:blur(${Math.max(0,10-dep.melt_percent/100*10)}px)`">
+                            <div class="ice-crystal-container">
+                                <!-- 6-pointed SVG ice crystal -->
+                                <svg class="ice-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <radialGradient id="iceg" cx="50%" cy="50%" r="50%">
+                                            <stop offset="0%"   stop-color="rgba(255,255,255,0.92)"/>
+                                            <stop offset="35%"  stop-color="rgba(210,240,255,0.75)"/>
+                                            <stop offset="100%" stop-color="rgba(160,210,240,0)"/>
+                                        </radialGradient>
+                                    </defs>
+                                    <!-- Arm group — repeated 6 times with 60° rotation -->
+                                    <g stroke="rgba(200,235,255,0.85)" stroke-linecap="round" fill="none">
+                                        <g transform="rotate(0 50 50)">
+                                            <line x1="50" y1="50" x2="50" y2="8"  stroke-width="2.2"/>
+                                            <line x1="50" y1="36" x2="43" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="36" x2="57" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="22" x2="44" y2="16" stroke-width="1.0"/>
+                                            <line x1="50" y1="22" x2="56" y2="16" stroke-width="1.0"/>
+                                        </g>
+                                        <g transform="rotate(60 50 50)">
+                                            <line x1="50" y1="50" x2="50" y2="8"  stroke-width="2.2"/>
+                                            <line x1="50" y1="36" x2="43" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="36" x2="57" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="22" x2="44" y2="16" stroke-width="1.0"/>
+                                            <line x1="50" y1="22" x2="56" y2="16" stroke-width="1.0"/>
+                                        </g>
+                                        <g transform="rotate(120 50 50)">
+                                            <line x1="50" y1="50" x2="50" y2="8"  stroke-width="2.2"/>
+                                            <line x1="50" y1="36" x2="43" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="36" x2="57" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="22" x2="44" y2="16" stroke-width="1.0"/>
+                                            <line x1="50" y1="22" x2="56" y2="16" stroke-width="1.0"/>
+                                        </g>
+                                        <g transform="rotate(180 50 50)">
+                                            <line x1="50" y1="50" x2="50" y2="8"  stroke-width="2.2"/>
+                                            <line x1="50" y1="36" x2="43" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="36" x2="57" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="22" x2="44" y2="16" stroke-width="1.0"/>
+                                            <line x1="50" y1="22" x2="56" y2="16" stroke-width="1.0"/>
+                                        </g>
+                                        <g transform="rotate(240 50 50)">
+                                            <line x1="50" y1="50" x2="50" y2="8"  stroke-width="2.2"/>
+                                            <line x1="50" y1="36" x2="43" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="36" x2="57" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="22" x2="44" y2="16" stroke-width="1.0"/>
+                                            <line x1="50" y1="22" x2="56" y2="16" stroke-width="1.0"/>
+                                        </g>
+                                        <g transform="rotate(300 50 50)">
+                                            <line x1="50" y1="50" x2="50" y2="8"  stroke-width="2.2"/>
+                                            <line x1="50" y1="36" x2="43" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="36" x2="57" y2="29" stroke-width="1.4"/>
+                                            <line x1="50" y1="22" x2="44" y2="16" stroke-width="1.0"/>
+                                            <line x1="50" y1="22" x2="56" y2="16" stroke-width="1.0"/>
+                                        </g>
+                                    </g>
+                                    <!-- Center hexagon -->
+                                    <polygon points="50,44 55.5,47 55.5,53 50,56 44.5,53 44.5,47"
+                                             fill="url(#iceg)"
+                                             stroke="rgba(200,235,255,0.9)" stroke-width="0.8"/>
+                                </svg>
+                                <div class="ice-shimmer"></div>
+                                <div class="ice-drip ice-drip-1" x-show="dep.melt_percent > 40"></div>
+                                <div class="ice-drip ice-drip-2" x-show="dep.melt_percent > 65"></div>
+                            </div>
+                            <!-- SVG fracture lines -->
+                            <svg class="ice-fractures" viewBox="0 0 100 100" x-show="dep.melt_percent > 25">
+                                <polyline points="20,35 32,42 38,38 50,48"
+                                          stroke="white" stroke-width="0.8" fill="none" stroke-opacity="0.6"/>
+                                <polyline points="62,24 67,38 74,34 82,44"
+                                          stroke="white" stroke-width="0.8" fill="none" stroke-opacity="0.5"/>
+                                <polyline points="15,62 28,56 35,70"
+                                          stroke="white" stroke-width="0.7" fill="none" stroke-opacity="0.4"
+                                          x-show="dep.melt_percent > 50"/>
+                            </svg>
                         </div>
                         <!-- Unlocked golden glow -->
                         <div class="vault-glow" x-show="!dep.locked"></div>

@@ -7,7 +7,16 @@
 
     <!-- Header: avatar, name, level, XP bar -->
     <section class="profile-header">
-        <div class="profile-avatar" x-text="iconIdToEmoji(profileIcon)"></div>
+        <div class="profile-avatar icon-particle-host" id="profile-icon-preview">
+            <!-- Emoji always visible as base fallback layer -->
+            <span x-text="iconDisplay(profileIcon)" class="avatar-emoji-base"></span>
+            <!-- Lottie overlaid on top (transparent when placeholder, covers emoji when real) -->
+            <template x-if="currentIconMeta && currentIconMeta.lottie">
+                <lottie-player :src="currentIconMeta.lottie_src" background="transparent"
+                               speed="1" autoplay loop>
+                </lottie-player>
+            </template>
+        </div>
         <div class="profile-info">
             <div class="profile-username" x-text="username"></div>
             <div class="profile-level-badge">
@@ -97,35 +106,24 @@
     <section class="profile-section">
         <h2 class="section-title">Choose Your Icon</h2>
         <div class="icon-grid">
-            <!-- Starter emojis -->
-            <template x-for="icon in starterIcons" :key="icon">
-                <button class="icon-btn" :class="{ 'icon-selected': profileIcon === icon }"
-                        @click="selectIcon(icon)" x-text="icon"></button>
-            </template>
-            <!-- Level-unlocked CSS icons -->
-            <template x-for="li in levelIcons" :key="li.id">
-                <button class="icon-btn" :class="{
-                    'icon-selected': profileIcon === li.id,
-                    'icon-locked': level < li.level,
-                    ['icon-' + li.css_class]: true
-                }"
-                        @click="level >= li.level && selectIcon(li.id)"
-                        :disabled="level < li.level">
-                    <span x-text="li.emoji"></span>
-                    <span class="icon-lock" x-show="level < li.level" x-text="'Lv' + li.level"></span>
-                </button>
-            </template>
-            <!-- Mission-earned icons -->
-            <template x-for="mi in missionIcons" :key="mi.id">
-                <button class="icon-btn" :class="{
-                    'icon-selected': profileIcon === mi.id,
-                    'icon-locked': !mi.earned,
-                    ['icon-' + mi.css_class]: mi.earned
-                }"
-                        @click="mi.earned && selectIcon(mi.id)"
-                        :disabled="!mi.earned">
-                    <span x-text="mi.emoji"></span>
-                    <span class="icon-lock" x-show="!mi.earned">Mission</span>
+            <template x-for="icon in availableIcons" :key="icon.id">
+                <button class="icon-btn"
+                        :class="{
+                            'icon-selected': profileIcon === icon.id,
+                            'icon-locked': icon.locked,
+                            [icon.css_class]: icon.css_class && !icon.locked
+                        }"
+                        @click="!icon.locked && selectIcon(icon.id)"
+                        :disabled="icon.locked">
+                    <!-- Emoji always visible as base fallback layer -->
+                    <span x-text="icon.emoji" class="avatar-emoji-base"></span>
+                    <!-- Lottie overlaid on top for unlocked L5+ icons -->
+                    <template x-if="icon.lottie && !icon.locked">
+                        <lottie-player :src="icon.lottie_src" background="transparent"
+                                       speed="1" autoplay loop>
+                        </lottie-player>
+                    </template>
+                    <span class="icon-lock" x-show="icon.locked" x-text="'Lv' + icon.min_level"></span>
                 </button>
             </template>
         </div>
@@ -164,7 +162,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('profileApp', () => ({
         // Profile data
         username: '',
-        profileIcon: '?',
+        profileIcon: 'star_basic',
         level: 1,
         levelName: 'Rookie',
         xp: 0,
@@ -182,39 +180,29 @@ document.addEventListener('alpine:init', () => {
         // Achievement data
         recentAchievements: [],
         catalog: [],
-        // Icon data
-        starterIcons: ['?', '\u{1F3AE}', '\u26A1', '\u{1F680}', '\u{1F3AF}', '\u{1F31F}', '\u{1F525}', '\u{1F48E}', '\u{1F98A}', '\u{1F409}', '\u{1F3B8}', '\u{1F3C0}', '\u{1F3A8}', '\u{1F308}', '\u{1F981}', '\u{1F43A}', '\u{1F985}', '\u{1F3AA}', '\u{1F916}', '\u{1F6F8}'],
-        levelIcons: [
-            { id: 'shield', emoji: '\u{1F6E1}\uFE0F', css_class: 'icon-enhanced', level: 3 },
-            { id: 'crown', emoji: '\u{1F451}', css_class: 'icon-enhanced', level: 3 },
-            { id: 'dragon_face', emoji: '\u{1F432}', css_class: 'icon-glowing', level: 5 },
-            { id: 'phoenix', emoji: '\u{1F426}\u200D\u{1F525}', css_class: 'icon-glowing', level: 5 },
-            { id: 'thunder', emoji: '\u{26A1}', css_class: 'icon-premium', level: 7 },
-            { id: 'flame', emoji: '\u{1F525}', css_class: 'icon-premium', level: 7 },
-            { id: 'galaxy', emoji: '\u{1F30C}', css_class: 'icon-ultimate', level: 10 },
-            { id: 'infinity', emoji: '\u267E\uFE0F', css_class: 'icon-ultimate', level: 10 },
-        ],
-        missionIcons: [
-            { id: 'lightning_brain', emoji: '\u{1F9E0}\u26A1', css_class: 'icon-mission-lightning', earned: false },
-            { id: 'golden_music_note', emoji: '\u{1F3B5}\u2728', css_class: 'icon-mission-music', earned: false },
-        ],
-        // Map icon IDs to emojis for display
-        iconIdToEmoji(id) {
-            const li = this.levelIcons.find(i => i.id === id);
-            if (li) return li.emoji;
-            const mi = this.missionIcons.find(i => i.id === id);
-            if (mi) return mi.emoji;
-            return id;  // starter icons are already emojis
+        // Icon data — list of dicts from API
+        availableIcons: [],
+
+        // Computed: metadata for the currently selected icon
+        get currentIconMeta() {
+            return this.availableIcons.find(i => i.id === this.profileIcon) || null;
+        },
+
+        // Display the emoji for an icon ID (fallback for non-Lottie icons)
+        iconDisplay(id) {
+            const meta = this.availableIcons.find(i => i.id === id);
+            if (meta) return meta.emoji;
+            return id; // passthrough for legacy emoji icons
         },
 
         themeColors: [
-            { name: 'cyan', hex: '#00d4ff', unlock_level: 1 },
-            { name: 'blue', hex: '#3366ff', unlock_level: 1 },
-            { name: 'purple', hex: '#8338ec', unlock_level: 1 },
-            { name: 'lime', hex: '#39ff14', unlock_level: 3 },
+            { name: 'cyan',    hex: '#00d4ff', unlock_level: 1 },
+            { name: 'blue',    hex: '#3366ff', unlock_level: 1 },
+            { name: 'purple',  hex: '#8338ec', unlock_level: 1 },
+            { name: 'lime',    hex: '#39ff14', unlock_level: 3 },
             { name: 'magenta', hex: '#ff006e', unlock_level: 3 },
-            { name: 'gold', hex: '#ffd700', unlock_level: 5 },
-            { name: 'red', hex: '#ff3333', unlock_level: 7 },
+            { name: 'gold',    hex: '#ffd700', unlock_level: 5 },
+            { name: 'red',     hex: '#ff3333', unlock_level: 7 },
         ],
 
         async loadProfile() {
@@ -234,13 +222,7 @@ document.addEventListener('alpine:init', () => {
                 this.streakBest = data.streak_best;
                 this.fireMode = data.fire_mode;
                 this.currentTheme = data.theme_color;
-
-                // Update mission icon earned status
-                if (data.available_icons) {
-                    for (const mi of this.missionIcons) {
-                        mi.earned = data.available_icons.includes(mi.id);
-                    }
-                }
+                this.availableIcons = data.available_icons || [];
 
                 // Load achievements
                 this.achievementsUnlocked = data.achievements_unlocked || 0;
@@ -252,6 +234,13 @@ document.addEventListener('alpine:init', () => {
                     const catData = await catRes.json();
                     this.catalog = catData.achievements || [];
                 }
+
+                // Initialize particles for currently selected icon if L8+
+                this.$nextTick(() => {
+                    if (this.level >= 8 && typeof initProfileParticle === 'function') {
+                        initProfileParticle(this.profileIcon);
+                    }
+                });
             } catch (e) {
                 console.error('Failed to load profile:', e);
             }
@@ -272,6 +261,10 @@ document.addEventListener('alpine:init', () => {
                 if (!res.ok) { this.flash(data.error, 'error'); return; }
                 this.profileIcon = icon;
                 this.flash('Icon updated!', 'success');
+                // Update particle effect for new icon
+                if (this.level >= 8 && typeof initProfileParticle === 'function') {
+                    this.$nextTick(() => initProfileParticle(icon));
+                }
             } catch (e) {
                 this.flash('Failed to update icon', 'error');
             }

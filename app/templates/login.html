@@ -7,7 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.3.6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.4.1">
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@3/tsparticles.slim.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/gamification.js') }}?v=1.0.0"></script>
 </head>
 <body>
     <div class="login-page">
@@ -21,8 +24,11 @@
             <form class="user-card-form" method="POST" action="/session">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <button type="submit" class="user-card" data-level="{{ user.level }}" data-fire-mode="{{ 'true' if user.fire_mode else 'false' }}">
-                    <div class="user-card-avatar {{ user.icon | icon_css }}">
-                        {{ user.icon | icon_emoji }}
+                    <div class="user-card-avatar icon-particle-host {{ user.icon | icon_css }}"
+                         data-icon-id="{{ user.icon }}"
+                         data-lottie="{{ 'true' if user.icon | is_lottie_icon else 'false' }}"
+                         data-lottie-src="{{ user.icon | icon_lottie_src }}">
+                        <span class="avatar-emoji-base">{{ user.icon | icon_emoji }}</span>
                     </div>
                     <div class="user-card-name">{{ user.username }}</div>
                     <div class="user-card-level">
@@ -37,5 +43,26 @@
             {% endfor %}
         </div>
     </div>
+
+    <script>
+    // Inject lottie-player elements for L5+ icon avatars
+    document.querySelectorAll('.user-card-avatar[data-lottie="true"]').forEach(function(div) {
+        var p = document.createElement('lottie-player');
+        p.setAttribute('src', div.dataset.lottieSrc);
+        p.setAttribute('background', 'transparent');
+        p.setAttribute('speed', '1');
+        p.setAttribute('autoplay', '');
+        p.setAttribute('loop', '');
+        p.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;';
+        div.appendChild(p);
+    });
+
+    // Initialize tsParticles for L8+ user cards
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof initLoginParticles === 'function') {
+            initLoginParticles();
+        }
+    });
+    </script>
 </body>
 </html>

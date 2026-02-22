@@ -66,12 +66,13 @@ class TestIconUpdate:
     """POST /api/profile/icon tests."""
 
     def test_set_starter_icon(self, app, logged_in_client, sample_users):
+        """L1 icons (star_basic, rocket, etc.) are always available."""
         client = logged_in_client(user_id=sample_users["kid1"].id)
         resp = client.post("/api/profile/icon",
-                           json={"icon": "\U0001f525"},
+                           json={"icon": "star_basic"},
                            content_type="application/json")
         assert resp.status_code == 200
-        assert resp.get_json()["icon"] == "\U0001f525"
+        assert resp.get_json()["icon"] == "star_basic"
 
     def test_reject_level_locked_icon(self, app, logged_in_client, sample_users):
         """User at level 1 cannot use a level-3 icon."""

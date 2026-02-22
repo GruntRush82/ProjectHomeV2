@@ -24,6 +24,152 @@ def _require_login():
     return user_id, user
 
 
+# ── Icon data structures ──────────────────────────────────────────────
+
+# 5 icons per level (levels 1-10)
+ICON_LEVEL_GROUPS = {
+    1:  ["star_basic", "rocket", "bolt", "controller", "robot"],
+    2:  ["wolf", "eagle", "moon", "crystal_ball", "compass"],
+    3:  ["shield", "crown", "sword", "tiger", "potion"],
+    4:  ["knight", "falcon", "gem", "skull", "bull"],
+    5:  ["dragon_face", "phoenix", "wizard", "lightning_charged", "gem_glowing"],
+    6:  ["knight_hero", "samurai", "thunder_storm", "fire_hero", "fire_wolf"],
+    7:  ["dragon_full", "flame_premium", "constellation", "thunderbolt", "vortex"],
+    8:  ["firefly_swarm", "black_hole", "meteor", "phoenix_master", "electric_storm"],
+    9:  ["dragon_ember", "spaceship", "cosmic_wolf", "supernova", "ice_titan"],
+    10: ["galaxy", "infinity_ultimate", "titan_god", "void_dragon", "omega"],
+}
+
+# Flat map: icon_id -> required level (all 50 icons)
+LEVEL_ICONS = {
+    icon: lvl
+    for lvl, icons in ICON_LEVEL_GROUPS.items()
+    for icon in icons
+}
+
+# Rendering metadata per icon
+ICON_METADATA = {
+    # L1 — Rookie (no effects)
+    "star_basic":        {"emoji": "\u2B50", "css_class": "", "lottie": False},
+    "rocket":            {"emoji": "\U0001F680", "css_class": "", "lottie": False},
+    "bolt":              {"emoji": "\u26A1", "css_class": "", "lottie": False},
+    "controller":        {"emoji": "\U0001F3AE", "css_class": "", "lottie": False},
+    "robot":             {"emoji": "\U0001F916", "css_class": "", "lottie": False},
+    # L2 — Apprentice (faint glow)
+    "wolf":              {"emoji": "\U0001F43A", "css_class": "icon-l2", "lottie": False},
+    "eagle":             {"emoji": "\U0001F985", "css_class": "icon-l2", "lottie": False},
+    "moon":              {"emoji": "\U0001F319", "css_class": "icon-l2", "lottie": False},
+    "crystal_ball":      {"emoji": "\U0001F52E", "css_class": "icon-l2", "lottie": False},
+    "compass":           {"emoji": "\U0001F9ED", "css_class": "icon-l2", "lottie": False},
+    # L3 — Helper (visible accent ring)
+    "shield":            {"emoji": "\U0001F6E1\uFE0F", "css_class": "icon-l3", "lottie": False},
+    "crown":             {"emoji": "\U0001F451", "css_class": "icon-l3", "lottie": False},
+    "sword":             {"emoji": "\u2694\uFE0F", "css_class": "icon-l3", "lottie": False},
+    "tiger":             {"emoji": "\U0001F42F", "css_class": "icon-l3", "lottie": False},
+    "potion":            {"emoji": "\U0001F9EA", "css_class": "icon-l3", "lottie": False},
+    # L4 — Star (spinning conic-gradient border)
+    "knight":            {"emoji": "\u265E", "css_class": "icon-l4", "lottie": False},
+    "falcon":            {"emoji": "\U0001F426", "css_class": "icon-l4", "lottie": False},
+    "gem":               {"emoji": "\U0001F48E", "css_class": "icon-l4", "lottie": False},
+    "skull":             {"emoji": "\U0001F480", "css_class": "icon-l4", "lottie": False},
+    "bull":              {"emoji": "\U0001F402", "css_class": "icon-l4", "lottie": False},
+    # L5 — Champion (Lottie + pulsing multi-glow)
+    "dragon_face":       {"emoji": "\U0001F409", "css_class": "icon-l5", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_dragon_face.json"},
+    "phoenix":           {"emoji": "\U0001F426\u200D\U0001F525", "css_class": "icon-l5", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_phoenix.json"},
+    "wizard":            {"emoji": "\U0001F9D9", "css_class": "icon-l5", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_wizard.json"},
+    "lightning_charged": {"emoji": "\u26A1", "css_class": "icon-l5", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_lightning_charged.json"},
+    "gem_glowing":       {"emoji": "\U0001F48E", "css_class": "icon-l5", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_gem_glowing.json"},
+    # L6 — Hero (Lottie + shimmer sweep)
+    "knight_hero":       {"emoji": "\u2694\uFE0F", "css_class": "icon-l6", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_knight_hero.json"},
+    "samurai":           {"emoji": "\U0001F977", "css_class": "icon-l6", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_samurai.json"},
+    "thunder_storm":     {"emoji": "\u26C8\uFE0F", "css_class": "icon-l6", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_thunder_storm.json"},
+    "fire_hero":         {"emoji": "\U0001F525", "css_class": "icon-l6", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_fire_hero.json"},
+    "fire_wolf":         {"emoji": "\U0001F43A", "css_class": "icon-l6", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_fire_wolf.json"},
+    # L7 — Legend (Lottie + 3 orbiting CSS dots)
+    "dragon_full":       {"emoji": "\U0001F432", "css_class": "icon-l7", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_dragon_full.json"},
+    "flame_premium":     {"emoji": "\U0001F525", "css_class": "icon-l7", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_flame_premium.json"},
+    "constellation":     {"emoji": "\u2728", "css_class": "icon-l7", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_constellation.json"},
+    "thunderbolt":       {"emoji": "\u26A1", "css_class": "icon-l7", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_thunderbolt.json"},
+    "vortex":            {"emoji": "\U0001F300", "css_class": "icon-l7", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_vortex.json"},
+    # L8 — Master (Lottie + tsParticles)
+    "firefly_swarm":     {"emoji": "\U0001FAB2", "css_class": "icon-l8", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_firefly_swarm.json",
+                          "particle_config": "firefly_swarm"},
+    "black_hole":        {"emoji": "\U0001F573\uFE0F", "css_class": "icon-l8", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_black_hole.json",
+                          "particle_config": "black_hole"},
+    "meteor":            {"emoji": "\u2604\uFE0F", "css_class": "icon-l8", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_meteor.json",
+                          "particle_config": "meteor"},
+    "phoenix_master":    {"emoji": "\U0001F426\u200D\U0001F525", "css_class": "icon-l8", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_phoenix_master.json",
+                          "particle_config": "phoenix_master"},
+    "electric_storm":    {"emoji": "\u26C8\uFE0F", "css_class": "icon-l8", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_electric_storm.json",
+                          "particle_config": "electric_storm"},
+    # L9 — Titan (Lottie + stronger particles + card halo)
+    "dragon_ember":      {"emoji": "\U0001F409", "css_class": "icon-l9", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_dragon_ember.json",
+                          "particle_config": "dragon_ember"},
+    "spaceship":         {"emoji": "\U0001F680", "css_class": "icon-l9", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_spaceship.json",
+                          "particle_config": "spaceship"},
+    "cosmic_wolf":       {"emoji": "\U0001F43A", "css_class": "icon-l9", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_cosmic_wolf.json",
+                          "particle_config": "cosmic_wolf"},
+    "supernova":         {"emoji": "\U0001F4AB", "css_class": "icon-l9", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_supernova.json",
+                          "particle_config": "supernova"},
+    "ice_titan":         {"emoji": "\u2744\uFE0F", "css_class": "icon-l9", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_ice_titan.json",
+                          "particle_config": "ice_titan"},
+    # L10 — Ultimate (Lottie + full cinematic + particles)
+    "galaxy":            {"emoji": "\U0001F30C", "css_class": "icon-l10", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_galaxy.json",
+                          "particle_config": "galaxy"},
+    "infinity_ultimate": {"emoji": "\u267E\uFE0F", "css_class": "icon-l10", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_infinity_ultimate.json",
+                          "particle_config": "infinity_ultimate"},
+    "titan_god":         {"emoji": "\u26A1", "css_class": "icon-l10", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_titan_god.json",
+                          "particle_config": "titan_god"},
+    "void_dragon":       {"emoji": "\U0001F409", "css_class": "icon-l10", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_void_dragon.json",
+                          "particle_config": "void_dragon"},
+    "omega":             {"emoji": "\U0001F52E", "css_class": "icon-l10", "lottie": True,
+                          "lottie_src": "/static/lottie/icon_omega.json",
+                          "particle_config": "omega"},
+    # Mission icons (preserved)
+    "lightning_brain":   {"emoji": "\U0001F9E0\u26A1", "css_class": "icon-mission-lightning", "lottie": False},
+    "golden_music_note": {"emoji": "\U0001F3B5\u2728", "css_class": "icon-mission-music", "lottie": False},
+}
+
+# Backward-compat dicts consumed by __init__.py template filters
+ICON_ID_TO_EMOJI = {k: v["emoji"] for k, v in ICON_METADATA.items()}
+ICON_ID_TO_CSS   = {k: v["css_class"] for k, v in ICON_METADATA.items()}
+
+# L1 icons are the starter set
+STARTER_ICONS = ICON_LEVEL_GROUPS[1]
+
+# Mission-earned icon IDs
+MISSION_ICONS = {"lightning_brain", "golden_music_note"}
+
+
 # ── notification routes ──────────────────────────────────────────────
 
 @achievements_bp.route("/api/achievements/notifications")
@@ -120,49 +266,6 @@ def user_achievements():
 
 # ── profile routes ───────────────────────────────────────────────────
 
-# Valid starter emoji icons
-STARTER_ICONS = [
-    "?", "\U0001f3ae", "\u26a1", "\U0001f680", "\U0001f3af",
-    "\U0001f31f", "\U0001f525", "\U0001f48e", "\U0001f98a", "\U0001f409",
-    "\U0001f3b8", "\U0001f3c0", "\U0001f3a8", "\U0001f308", "\U0001f981",
-    "\U0001f43a", "\U0001f985", "\U0001f3aa", "\U0001f916", "\U0001f6f8",
-]
-
-# Level-unlocked icon IDs and their required level
-LEVEL_ICONS = {
-    "shield": 3, "crown": 3,
-    "dragon_face": 5, "phoenix": 5,
-    "thunder": 7, "flame": 7,
-    "galaxy": 10, "infinity": 10,
-}
-
-# Mission-earned icon IDs
-MISSION_ICONS = {"lightning_brain", "golden_music_note"}
-
-# Icon ID → emoji mapping (for server-side rendering)
-ICON_ID_TO_EMOJI = {
-    "shield": "\U0001f6e1\ufe0f",
-    "crown": "\U0001f451",
-    "dragon_face": "\U0001f432",
-    "phoenix": "\U0001f426\u200d\U0001f525",
-    "thunder": "\u26a1",
-    "flame": "\U0001f525",
-    "galaxy": "\U0001f30c",
-    "infinity": "\u267e\ufe0f",
-    "lightning_brain": "\U0001f9e0\u26a1",
-    "golden_music_note": "\U0001f3b5\u2728",
-}
-
-# Icon ID → CSS class mapping (for server-side rendering)
-ICON_ID_TO_CSS = {
-    "shield": "icon-enhanced", "crown": "icon-enhanced",
-    "dragon_face": "icon-glowing", "phoenix": "icon-glowing",
-    "thunder": "icon-premium", "flame": "icon-premium",
-    "galaxy": "icon-ultimate", "infinity": "icon-ultimate",
-    "lightning_brain": "icon-mission-lightning",
-    "golden_music_note": "icon-mission-music",
-}
-
 # Theme colour unlock levels
 THEME_UNLOCK = {
     "cyan": 1, "blue": 1, "purple": 1,
@@ -195,11 +298,20 @@ def get_profile():
 
     total_unlocked = UserAchievement.query.filter_by(user_id=user_id).count()
 
-    # Available icons: starter + level-unlocked + mission-earned
-    available = list(STARTER_ICONS)
-    for icon_id, req_level in LEVEL_ICONS.items():
-        if user.level >= req_level:
-            available.append(icon_id)
+    # Build available_icons as list of dicts with full metadata
+    user_level = user.level
+    available = []
+    for icon_id, req_level in sorted(LEVEL_ICONS.items(), key=lambda x: x[1]):
+        meta = ICON_METADATA.get(icon_id, {})
+        available.append({
+            "id": icon_id,
+            "emoji": meta.get("emoji", icon_id),
+            "css_class": meta.get("css_class", ""),
+            "lottie": meta.get("lottie", False),
+            "lottie_src": meta.get("lottie_src", ""),
+            "min_level": req_level,
+            "locked": user_level < req_level,
+        })
     # Check completed missions for mission icons
     completed = MissionAssignment.query.filter_by(
         user_id=user_id,
@@ -207,7 +319,16 @@ def get_profile():
     ).all()
     for ma in completed:
         if ma.mission.reward_icon in MISSION_ICONS:
-            available.append(ma.mission.reward_icon)
+            meta = ICON_METADATA.get(ma.mission.reward_icon, {})
+            available.append({
+                "id": ma.mission.reward_icon,
+                "emoji": meta.get("emoji", ma.mission.reward_icon),
+                "css_class": meta.get("css_class", ""),
+                "lottie": False,
+                "lottie_src": "",
+                "min_level": 0,
+                "locked": False,
+            })
 
     return jsonify({
         "username": user.username,
@@ -239,13 +360,7 @@ def update_icon():
     if not icon:
         return jsonify({"error": "Icon is required"}), 400
 
-    # Validate: starter emoji?
-    if icon in STARTER_ICONS:
-        user.icon = icon
-        db.session.commit()
-        return jsonify({"icon": icon})
-
-    # Validate: level-unlocked icon?
+    # Validate: level-gated icon (L1-L10, all 50 icons)?
     if icon in LEVEL_ICONS:
         if user.level < LEVEL_ICONS[icon]:
             return jsonify({

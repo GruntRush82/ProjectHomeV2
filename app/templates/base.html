@@ -7,8 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.3.6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.4.1">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    {% if current_user and current_user.level >= 8 %}
+    <script src="https://cdn.jsdelivr.net/npm/@tsparticles/slim@3/tsparticles.slim.bundle.min.js"></script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/gamification.js') }}?v=1.0.0"></script>
     {% block head %}{% endblock %}
 </head>
 <body class="theme-{{ current_user.theme_color if current_user else 'cyan' }}"

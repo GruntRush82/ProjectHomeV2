@@ -78,7 +78,7 @@ def _register_auth_hook(flask_app):
 def _register_context_processors(flask_app):
     """Make current_user and idle_timeout available in every template."""
     from app.models.user import User
-    from app.blueprints.achievements import ICON_ID_TO_EMOJI, ICON_ID_TO_CSS
+    from app.blueprints.achievements import ICON_ID_TO_EMOJI, ICON_ID_TO_CSS, ICON_METADATA
 
     @flask_app.template_filter("icon_emoji")
     def icon_emoji_filter(icon):
@@ -89,6 +89,16 @@ def _register_context_processors(flask_app):
     def icon_css_filter(icon):
         """Return CSS class for an icon ID, or empty string for starters."""
         return ICON_ID_TO_CSS.get(icon, "")
+
+    @flask_app.template_filter("is_lottie_icon")
+    def is_lottie_filter(icon):
+        """Return True if the icon ID uses a Lottie animation."""
+        return ICON_METADATA.get(icon, {}).get("lottie", False)
+
+    @flask_app.template_filter("icon_lottie_src")
+    def icon_lottie_src_filter(icon):
+        """Return the Lottie JSON src path for an icon ID."""
+        return ICON_METADATA.get(icon, {}).get("lottie_src", "")
 
     @flask_app.context_processor
     def inject_current_user():
