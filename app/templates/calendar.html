@@ -36,15 +36,15 @@
             </div>
 
             <template x-for="chore in chores" :key="chore.id">
-                <div class="chore-item" :class="{ 'chore-done': chore.completed }">
-                    <button class="chore-check" @click="toggleChore(chore)"
-                            :class="{ 'checked': chore.completed }">
+                <button class="chore-item" :class="{ 'chore-done': chore.completed }"
+                        @click="toggleChore(chore)">
+                    <span class="chore-check" :class="{ 'checked': chore.completed }">
                         <span x-show="!chore.completed">&#9711;</span>
                         <span x-show="chore.completed">&#10003;</span>
-                    </button>
+                    </span>
                     <span class="chore-text" x-text="chore.description"
                           :class="{ 'chore-strikethrough': chore.completed }"></span>
-                </div>
+                </button>
             </template>
 
             <!-- Progress bar -->

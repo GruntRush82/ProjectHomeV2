@@ -1287,33 +1287,40 @@ form button[type="submit"]:hover {
 .calendar-section .chore-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 14px;
+  padding: 14px 12px;
+  width: 100%;
+  border: none;
   border-bottom: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, opacity 0.2s ease;
 }
 .calendar-section .chore-item:last-child { border-bottom: none; }
-.calendar-section .chore-item.chore-done { opacity: 0.6; }
+.calendar-section .chore-item:active { background: rgba(255,255,255,0.06); }
+.calendar-section .chore-item.chore-done { opacity: 0.55; }
 
 .chore-check {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: none;
   background: var(--bg-card);
   box-shadow: inset 0 0 0 2px var(--glass-border);
   color: var(--text-dim);
   font-size: 18px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
   flex-shrink: 0;
-  -webkit-appearance: none;
-  appearance: none;
-  padding: 0;
 }
-.chore-check:hover {
+.calendar-section .chore-item:hover .chore-check {
   box-shadow: inset 0 0 0 2px var(--accent);
   color: var(--accent);
 }
@@ -1387,38 +1394,46 @@ form button[type="submit"]:hover {
 .event-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 16px;
-  padding: 12px;
+  padding: 16px;
   background: var(--bg-card);
   border-radius: var(--radius-sm);
 }
 .event-form-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 .event-form-row > * { flex: 1; }
 
 .form-input {
-  padding: 8px 12px;
+  padding: 14px 16px;
   background: var(--bg);
   border: none;
   box-shadow: inset 0 0 0 1px var(--glass-border);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: 'Poppins', sans-serif;
-  font-size: 0.9rem;
+  font-size: 1rem;
   outline: none;
   transition: box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 52px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .form-input:focus {
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 .form-input::placeholder { color: var(--text-muted); }
 
 /* color scheme for date/time inputs */
 .form-input::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
 }
 
 .btn-primary {
@@ -1437,24 +1452,40 @@ form button[type="submit"]:hover {
 }
 .btn-primary:hover { opacity: 0.9; }
 
+/* Full-width, taller submit button inside the event form */
+.event-form .btn-primary {
+  width: 100%;
+  padding: 16px;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  min-height: 54px;
+  border-radius: var(--radius);
+  -webkit-tap-highlight-color: transparent;
+}
+
 .add-event-btn {
-  padding: 4px 12px;
+  padding: 10px 20px;
   background: none;
   border: none;
   box-shadow: inset 0 0 0 1px var(--glass-border);
   border-radius: 999px;
   color: var(--accent);
   font-family: 'Poppins', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   -webkit-appearance: none;
   appearance: none;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
 }
 .add-event-btn:hover {
   box-shadow: inset 0 0 0 1px var(--accent);
   background: rgba(0, 212, 255, 0.08);
+}
+.add-event-btn:active {
+  background: rgba(0, 212, 255, 0.15);
 }
 
 .empty-state {
@@ -2758,7 +2789,10 @@ form button[type="submit"]:hover {
   background: conic-gradient(from 0deg, #ffd700, #ff006e, #ff4500, #39ff14, #00d4ff, #8338ec, #ffd700);
   border-radius: inherit;
   z-index: -1;
-  animation: icon-spin-border 2s linear infinite;
+  animation: rainbow-hue 3s linear infinite;
+}
+@keyframes rainbow-hue {
+  to { filter: hue-rotate(360deg); }
 }
 @keyframes icon-l10-pulse {
   0%, 100% { box-shadow: 0 0 24px rgba(255,215,0,0.7), 0 0 48px rgba(255,0,110,0.5), 0 0 72px rgba(0,212,255,0.3) !important; transform: scale(1); }
@@ -2788,28 +2822,28 @@ form button[type="submit"]:hover {
   isolation: isolate;
 }
 
-/* ── Emoji fallback + Lottie overlay pattern ──────────────────────────── *
- * The emoji span is always rendered as the base layer. When real Lottie   *
- * animations are present the <lottie-player> overlays it absolutely and   *
- * covers it. Placeholder (empty-layer) Lottie files are transparent, so   *
- * the emoji shows through until real animations are sourced.              */
+/* ── Emoji + Lottie aura pattern ──────────────────────────────────────── *
+ * The emoji sits ON TOP (z-index 2) so it is always clearly readable.    *
+ * The Lottie animation plays BEHIND it (z-index 0) as an animated glow   *
+ * / aura effect. Result: recognisable emoji + a living animated halo.    */
 .avatar-emoji-base {
   position: relative;
-  z-index: 0;
+  z-index: 2;
+  pointer-events: none;
 }
 .user-card-avatar lottie-player,
 .profile-avatar lottie-player {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  z-index: 2;
+  z-index: 0;
   pointer-events: none;
 }
 .icon-btn lottie-player {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  z-index: 2;
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -2923,20 +2957,9 @@ form button[type="submit"]:hover {
   50%       { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.25), 0 0 48px rgba(255,215,0,0.7), 0 0 100px rgba(var(--accent-rgb,0,212,255),0.5), 0 0 140px rgba(131,56,236,0.28); }
 }
 
-/* L10: Rainbow conic-gradient border via ::before + scale pulse */
+/* L10: Multi-color glow + scale pulse (avatar circle has the rainbow ring) */
 .user-card[data-level="10"] {
-  position: relative;
-  z-index: 0;
   animation: card-ultimate 1.5s ease-in-out infinite;
-}
-.user-card[data-level="10"]::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  background: conic-gradient(from 0deg, #ffd700, #ff006e, #ff4500, #39ff14, #00d4ff, #8338ec, #ffd700);
-  border-radius: 20px;
-  z-index: -1;
-  animation: icon-spin-border 2s linear infinite;
 }
 @keyframes card-ultimate {
   0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.25), 0 0 36px rgba(255,215,0,0.5), 0 0 72px rgba(255,0,110,0.3), 0 0 108px rgba(0,212,255,0.2); transform: scale(1); }
@@ -3009,12 +3032,16 @@ body[data-level="9"] .bank-card {
   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 0,212,255),0.15), 0 4px 16px rgba(0,0,0,0.3);
 }
 
-/* L10: Horizontal scan-line + rainbow shimmer on headings */
+/* L10: Rich ambient + rainbow shimmer on headings (no scan-line) */
 body[data-level="10"]::after {
-  content: ''; position: fixed; top: 0; left: 0; right: 0;
-  height: 2px; z-index: 9990; pointer-events: none;
-  background: linear-gradient(90deg, transparent 20%, var(--accent) 50%, transparent 80%);
-  animation: scan-line 6s linear infinite;
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse at 20% 15%, rgba(var(--accent-rgb, 0,212,255),0.09) 0%, transparent 45%),
+              radial-gradient(ellipse at 80% 85%, rgba(131,56,236,0.09) 0%, transparent 45%),
+              radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.05) 0%, transparent 55%);
+  animation: ambient-breathe 5s ease-in-out infinite;
+}
+body[data-level="10"] .bottom-nav {
+  box-shadow: 0 -2px 18px rgba(255,215,0,0.28);
 }
 body[data-level="10"] .section-title {
   background: linear-gradient(90deg, #fff 40%, var(--accent) 50%, #fff 60%);
@@ -3022,12 +3049,6 @@ body[data-level="10"] .section-title {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: shimmer-text 4s ease-in-out infinite;
-}
-@keyframes scan-line {
-  0%   { transform: translateY(-100vh); opacity: 0; }
-  10%  { opacity: 0.6; }
-  90%  { opacity: 0.6; }
-  100% { transform: translateY(100vh); opacity: 0; }
 }
 @keyframes shimmer-text {
   0%   { background-position: 200% 0; }

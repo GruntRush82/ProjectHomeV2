@@ -13,6 +13,18 @@ from app.extensions import db
 from app.models.bank import BankAccount, SavingsDeposit, Transaction
 
 
+def _cfg_float(appconfig_key: str, flask_key: str, default: float) -> float:
+    """Read a float config value from AppConfig DB, falling back to Flask config."""
+    from app.models.security import AppConfig
+    val = AppConfig.get(appconfig_key)
+    if val is not None:
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            pass
+    return float(current_app.config.get(flask_key, default))
+
+
 def _get_active_savings_total(user_id: int) -> float:
     """Sum of all non-withdrawn savings deposits for a user."""
     deposits = SavingsDeposit.query.filter_by(
@@ -35,7 +47,7 @@ def calculate_interest(user_id: int) -> float:
     if total_savings <= 0:
         return 0.0
 
-    weekly_rate = current_app.config.get("INTEREST_RATE_WEEKLY", 0.05)
+    weekly_rate = _cfg_float("interest_rate", "INTEREST_RATE_WEEKLY", 0.05)
     weekly_interest = total_savings * weekly_rate
 
     if account.last_interest_credit:
@@ -93,7 +105,7 @@ def get_ticker_data(user_id: int) -> dict:
     """
     account = BankAccount.query.filter_by(user_id=user_id).first()
     total_savings = _get_active_savings_total(user_id)
-    weekly_rate = current_app.config.get("INTEREST_RATE_WEEKLY", 0.05)
+    weekly_rate = _cfg_float("interest_rate", "INTEREST_RATE_WEEKLY", 0.05)
 
     if not account:
         return {

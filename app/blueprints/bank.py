@@ -7,9 +7,22 @@ from flask import Blueprint, current_app, jsonify, render_template, request, ses
 from app.extensions import db
 from app.models.bank import BankAccount, SavingsDeposit, SavingsGoal, Transaction
 from app.models.user import User
-from app.services.interest import get_ticker_data
+from app.services.interest import credit_interest, get_ticker_data, _cfg_float
 
 bank_bp = Blueprint("bank", __name__)
+
+
+def _bank_cfg(key: str) -> float:
+    """Read a bank config float from AppConfig (admin-editable) with Flask config fallback."""
+    _map = {
+        "interest_rate":       ("INTEREST_RATE_WEEKLY", 0.05),
+        "savings_max":         ("SAVINGS_MAX",          100.0),
+        "savings_lock_days":   ("SAVINGS_LOCK_DAYS",    30.0),
+        "cashout_min":         ("CASHOUT_MIN",           1.0),
+        "savings_deposit_min": ("SAVINGS_DEPOSIT_MIN",   1.0),
+    }
+    flask_key, default = _map[key]
+    return _cfg_float(key, flask_key, default)
 
 
 # ── helpers ──────────────────────────────────────────────────────────
@@ -110,6 +123,10 @@ def bank_overview():
 
     user_id, user = result
     account = _get_or_create_account(user_id)
+    # Credit any accrued interest into cash_balance before computing totals
+    credit_interest(user_id)
+    db.session.refresh(account)
+
     deposits = _active_deposits(user_id)
     unlocked = _unlocked_deposits(user_id)
 
@@ -121,7 +138,7 @@ def bank_overview():
     goal = SavingsGoal.query.filter_by(user_id=user_id, completed_at=None).first()
 
     # Interest projection
-    weekly_rate = current_app.config.get("INTEREST_RATE_WEEKLY", 0.05)
+    weekly_rate = _bank_cfg("interest_rate")
     yearly_projection = round(total_savings * weekly_rate * 52, 2)
 
     return jsonify({
@@ -132,9 +149,9 @@ def bank_overview():
         "yearly_projection": yearly_projection,
         "deposits": [d.to_dict() for d in deposits],
         "goal": goal.to_dict() if goal else None,
-        "savings_max": current_app.config.get("SAVINGS_MAX", 100.0),
-        "savings_deposit_min": current_app.config.get("SAVINGS_DEPOSIT_MIN", 1.0),
-        "cashout_min": current_app.config.get("CASHOUT_MIN", 1.0),
+        "savings_max": _bank_cfg("savings_max"),
+        "savings_deposit_min": _bank_cfg("savings_deposit_min"),
+        "cashout_min": _bank_cfg("cashout_min"),
         "fire_mode": user.fire_mode,
     })
 
@@ -146,7 +163,7 @@ def bank_ticker():
     if not user_id:
         return jsonify({
             "total_active_savings": 0.0,
-            "weekly_rate": current_app.config.get("INTEREST_RATE_WEEKLY", 0.05),
+            "weekly_rate": _bank_cfg("interest_rate"),
             "last_interest_credit": None,
             "accrued_interest": 0.0,
             "cash_balance": 0.0,
@@ -164,11 +181,15 @@ def cashout():
 
     user_id, user = result
     account = _get_or_create_account(user_id)
+    # Credit any accrued interest before cashout so it's included in the total
+    credit_interest(user_id)
+    db.session.refresh(account)
+
     unlocked = _unlocked_deposits(user_id)
 
     unlocked_total = sum(d.amount for d in unlocked)
     total = round(account.cash_balance + unlocked_total, 2)
-    cashout_min = current_app.config.get("CASHOUT_MIN", 1.0)
+    cashout_min = _bank_cfg("cashout_min")
 
     if total < cashout_min:
         return jsonify({
@@ -228,7 +249,7 @@ def savings_deposit():
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid amount"}), 400
 
-    deposit_min = current_app.config.get("SAVINGS_DEPOSIT_MIN", 1.0)
+    deposit_min = _bank_cfg("savings_deposit_min")
     if amount < deposit_min:
         return jsonify({"error": f"Minimum deposit is ${deposit_min:.2f}"}), 400
 
@@ -239,7 +260,7 @@ def savings_deposit():
         }), 400
 
     # Check savings max
-    savings_max = current_app.config.get("SAVINGS_MAX", 100.0)
+    savings_max = _bank_cfg("savings_max")
     current_savings = sum(d.amount for d in _active_deposits(user_id))
     if current_savings + amount > savings_max:
         room = max(0, savings_max - current_savings)
@@ -250,8 +271,8 @@ def savings_deposit():
 
     # Create deposit
     now = datetime.utcnow()
-    lock_days = current_app.config.get("SAVINGS_LOCK_DAYS", 30)
-    weekly_rate = current_app.config.get("INTEREST_RATE_WEEKLY", 0.05)
+    lock_days = int(_bank_cfg("savings_lock_days"))
+    weekly_rate = _bank_cfg("interest_rate")
 
     deposit = SavingsDeposit(
         user_id=user_id,

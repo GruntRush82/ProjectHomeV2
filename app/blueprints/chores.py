@@ -98,9 +98,12 @@ def _process_allowance_and_interest():
 
         earned = calculate_allowance(total, completed, user.allowance or 0)
 
-        # Fire Mode: 50% allowance boost
+        # Fire Mode: configurable allowance boost (default 50%)
+        fire_bonus_pct = 0
         if user.fire_mode and earned > 0:
-            earned = round(earned * 1.5, 2)
+            from app.models.security import AppConfig
+            fire_bonus_pct = int(AppConfig.get("fire_mode_bonus_pct", 50))
+            earned = round(earned * (1 + fire_bonus_pct / 100), 2)
 
         # Get or create bank account
         account = BankAccount.query.filter_by(user_id=user.id).first()
@@ -116,7 +119,7 @@ def _process_allowance_and_interest():
                 f"{'full' if completed == total else 'half'})"
             ]
             if user.fire_mode:
-                desc_parts.append(" +50% FIRE MODE")
+                desc_parts.append(f" +{fire_bonus_pct}% FIRE MODE")
             account.cash_balance += earned
             db.session.add(Transaction(
                 user_id=user.id,
