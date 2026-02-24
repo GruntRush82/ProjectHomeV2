@@ -1,7 +1,19 @@
 """Multiplication mission handler.
 
 Training: adaptive sessions with 20 questions, weighted toward weak facts.
-Testing: 3 levels (L1 untimed, L2 120s, L3 60s), 45 correct required.
+Testing: 10 levels, 45 questions each. max_errors and time_limit per level.
+
+Level  max_errors  time_limit
+  1        5         None
+  2        3         None
+  3        0         None
+  4        5         300s (5 min)
+  5        5         180s (3 min)
+  6        0         180s (3 min)
+  7        3         120s (2 min)
+  8        0         120s (2 min)
+  9        3          60s (1 min)
+ 10        0          60s (1 min)
 """
 
 import random
@@ -39,12 +51,20 @@ MNEMONICS = {
 
 DEFAULT_MNEMONIC = "Say the answer three times: {answer}, {answer}, {answer}. Now you've got it!"
 
-# Test level configuration
+# Test level configuration — (questions, max_errors, time_limit_seconds)
 LEVELS = {
-    1: {"time_limit": None, "questions": 45},
-    2: {"time_limit": 120, "questions": 45},
-    3: {"time_limit": 60, "questions": 45},
+    1:  {"questions": 45, "max_errors": 5, "time_limit": None},
+    2:  {"questions": 45, "max_errors": 3, "time_limit": None},
+    3:  {"questions": 45, "max_errors": 0, "time_limit": None},
+    4:  {"questions": 45, "max_errors": 5, "time_limit": 300},
+    5:  {"questions": 45, "max_errors": 5, "time_limit": 180},
+    6:  {"questions": 45, "max_errors": 0, "time_limit": 180},
+    7:  {"questions": 45, "max_errors": 3, "time_limit": 120},
+    8:  {"questions": 45, "max_errors": 0, "time_limit": 120},
+    9:  {"questions": 45, "max_errors": 3, "time_limit":  60},
+    10: {"questions": 45, "max_errors": 0, "time_limit":  60},
 }
+MAX_LEVEL = 10
 
 
 def _canonical_key(a, b):
@@ -268,7 +288,7 @@ class MultiplicationHandler(BaseMissionHandler):
         Answers are NOT included — validation is server-side only.
         """
         level = level or (assignment.current_level + 1)
-        level = min(level, 3)
+        level = min(level, MAX_LEVEL)
 
         level_config = LEVELS.get(level, LEVELS[1])
 
@@ -279,16 +299,14 @@ class MultiplicationHandler(BaseMissionHandler):
             b = random.randint(1, 12)
             questions.append({"a": a, "b": b})
 
-        # Store answers server-side on the assignment for validation
-        test_key = f"_test_answers_L{level}"
-
         return {
             "type": "test",
             "level": level,
             "questions": questions,
             "time_limit": level_config["time_limit"],
+            "max_errors": level_config["max_errors"],
             "total": level_config["questions"],
-            "label": f"Level {level}",
+            "label": f"Level {level} of {MAX_LEVEL}",
             # Server stores answers internally, not sent to client
             "_answers": [q["a"] * q["b"] for q in questions],
         }
@@ -310,6 +328,7 @@ class MultiplicationHandler(BaseMissionHandler):
         duration = results.get("duration_seconds")
 
         level_config = LEVELS.get(level, LEVELS[1])
+        max_errors = level_config["max_errors"]
 
         # Server-side validation: compute correct answers
         correct_answers = [q["a"] * q["b"] for q in questions]
@@ -317,14 +336,15 @@ class MultiplicationHandler(BaseMissionHandler):
             1 for ua, ca in zip(user_answers, correct_answers)
             if ua == ca
         )
+        error_count = len(questions) - correct_count
 
         # Check pass conditions
-        all_correct = correct_count >= level_config["questions"]
+        errors_ok = error_count <= max_errors
         time_ok = True
         if level_config["time_limit"] is not None and duration is not None:
             time_ok = duration <= level_config["time_limit"]
 
-        passed = all_correct and time_ok
+        passed = errors_ok and time_ok
 
         # Record progress
         progress = MissionProgress(
@@ -335,6 +355,7 @@ class MultiplicationHandler(BaseMissionHandler):
                 "questions": questions,
                 "user_answers": user_answers,
                 "correct_count": correct_count,
+                "error_count": error_count,
                 "passed": passed,
             },
             score=correct_count,
@@ -344,11 +365,11 @@ class MultiplicationHandler(BaseMissionHandler):
 
         if passed:
             assignment.current_level = level
-            if level >= 3:
+            if level >= MAX_LEVEL:
                 assignment.state = MissionAssignment.STATE_COMPLETED
                 assignment.completed_at = datetime.utcnow()
             else:
-                # Stay in testing/training state for next level
+                # Move to training before next level
                 assignment.state = MissionAssignment.STATE_TRAINING
         else:
             assignment.state = MissionAssignment.STATE_FAILED
@@ -358,7 +379,10 @@ class MultiplicationHandler(BaseMissionHandler):
         result = {
             "passed": passed,
             "level": level,
+            "max_level": MAX_LEVEL,
             "correct": correct_count,
+            "errors": error_count,
+            "max_errors": max_errors,
             "total": level_config["questions"],
             "duration_seconds": duration,
             "time_limit": level_config["time_limit"],
@@ -367,8 +391,9 @@ class MultiplicationHandler(BaseMissionHandler):
         }
 
         if not passed:
-            if not all_correct:
-                result["reason"] = f"Got {correct_count} of {level_config['questions']} correct"
+            if not errors_ok:
+                allowed = "no errors" if max_errors == 0 else f"≤{max_errors} error{'s' if max_errors != 1 else ''}"
+                result["reason"] = f"{error_count} error{'s' if error_count != 1 else ''} — need {allowed}"
             else:
                 result["reason"] = f"Took {duration}s but limit is {level_config['time_limit']}s"
 

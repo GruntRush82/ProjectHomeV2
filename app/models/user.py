@@ -17,6 +17,7 @@ class User(db.Model):
     streak_best = db.Column(db.Integer, default=0)
     perfect_weeks_total = db.Column(db.Integer, default=0)
     fire_mode = db.Column(db.Boolean, default=False)
+    lifestyle_points = db.Column(db.Integer, default=0)
 
     # Relationships
     chores = db.relationship(

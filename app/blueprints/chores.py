@@ -153,6 +153,43 @@ def _process_allowance_and_interest():
     db.session.commit()
 
 
+def _process_lifestyle_points():
+    """Award 1 lifestyle point to each user who met ALL weekly goals."""
+    try:
+        from datetime import date as _date
+        from app.models.lifestyle import LifestyleGoal, LifestyleLog
+        from app.models.user import User as _User
+        from app.services.achievements import check_achievements
+
+        today = _date.today()
+        week_start = today - timedelta(days=today.weekday())
+
+        for user in _User.query.all():
+            active_goals = LifestyleGoal.query.filter_by(
+                user_id=user.id, active=True
+            ).all()
+            if not active_goals:
+                continue  # No active goals — skip
+
+            all_met = all(
+                LifestyleLog.query.filter(
+                    LifestyleLog.goal_id == goal.id,
+                    LifestyleLog.log_date >= week_start,
+                ).count() >= goal.weekly_target
+                for goal in active_goals
+            )
+            if all_met:
+                user.lifestyle_points = (user.lifestyle_points or 0) + 1
+                db.session.flush()
+                # Achievement: fire on very first lifestyle point earned
+                if user.lifestyle_points == 1:
+                    check_achievements(user.id, "lifestyle_goal_getter")
+
+        db.session.commit()
+    except Exception:
+        pass  # Never break weekly reset due to lifestyle errors
+
+
 def _expire_trusted_ips():
     """Remove TrustedIP entries older than TRUSTED_IP_EXPIRY_DAYS."""
     from app.models.security import TrustedIP
@@ -192,6 +229,9 @@ def _weekly_archive(*, send_reports=True):
     _process_allowance_and_interest()
     _expire_trusted_ips()
 
+    # ── Phase 4: Lifestyle Points ─────────────────────────────────
+    _process_lifestyle_points()
+
     if send_reports:
         try:
             from reporting import generate_weekly_reports
@@ -199,6 +239,13 @@ def _weekly_archive(*, send_reports=True):
             generate_weekly_reports(db.session)
         except ImportError:
             pass
+
+    # V2 weekly digest (always runs; dry-runs when no admin emails configured)
+    try:
+        from app.services.digest import send_weekly_digest
+        send_weekly_digest()
+    except Exception:
+        pass
 
 
 # ── routes ───────────────────────────────────────────────────────────

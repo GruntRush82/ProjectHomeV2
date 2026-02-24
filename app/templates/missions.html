@@ -28,13 +28,26 @@
               </div>
               <p class="mission-desc" x-text="mission.mission.description"></p>
 
+              <!-- Reward preview -->
+              <div class="mission-reward-preview">
+                <span x-show="mission.mission.reward_xp" class="reward-xp-pill"
+                      x-text="'+' + (mission.mission.reward_xp || 500) + ' XP'"></span>
+                <span x-show="mission.mission.reward_cash > 0" class="reward-cash-pill"
+                      x-text="'$' + mission.mission.reward_cash.toFixed(2)"></span>
+                <span x-show="mission.mission.gem_type" class="reward-gem-pill"
+                      :class="'gem-pill-' + mission.mission.gem_type"
+                      x-text="gemEmoji(mission.mission.gem_type) + ' ' + (mission.mission.gem_size || '') + ' ' + (mission.mission.gem_type || '')"></span>
+                <span x-show="mission.mission.reward_description" class="reward-desc-text"
+                      x-text="mission.mission.reward_description"></span>
+              </div>
+
               <!-- Level progress bar (multiplication) -->
               <template x-if="mission.mission.mission_type === 'multiplication'">
                 <div class="level-progress">
                   <div class="level-bar">
-                    <div class="level-fill" :style="'width:' + (mission.current_level / 3 * 100) + '%'"></div>
+                    <div class="level-fill" :style="'width:' + (mission.current_level / 10 * 100) + '%'"></div>
                   </div>
-                  <span class="level-label" x-text="'Level ' + mission.current_level + ' / 3'"></span>
+                  <span class="level-label" x-text="'Level ' + mission.current_level + ' / 10'"></span>
                 </div>
               </template>
 
@@ -153,7 +166,12 @@
   <div x-show="view === 'test'" class="test-view">
     <div class="test-header">
       <button class="btn btn-back" @click="view = 'hub'; loadMissions()">&#8592; Back</button>
-      <h2 x-text="'Level ' + testLevel + ' Test'"></h2>
+      <div class="test-header-info">
+        <h2 x-text="'Level ' + testLevel + ' / 10'"></h2>
+        <span class="test-rules-badge"
+              x-text="testMaxErrors === 0 ? 'No errors allowed' : ('≤' + testMaxErrors + ' error' + (testMaxErrors !== 1 ? 's' : '') + ' allowed')">
+        </span>
+      </div>
       <template x-if="testTimeLimit">
         <div class="test-timer" :class="{'timer-warning': testTimeRemaining <= 10}">
           <span x-text="formatTime(testTimeRemaining)"></span>
@@ -191,10 +209,12 @@
       <div class="test-results">
         <template x-if="testPassed">
           <div class="test-passed">
-            <h2>Level <span x-text="testLevel"></span> Passed!</h2>
+            <h2>Level <span x-text="testLevel"></span> Passed! &#127881;</h2>
             <p class="score-display" x-text="testCorrectCount + ' / ' + testQuestions.length + ' correct'"></p>
-            <template x-if="testLevel < 3">
-              <p>Ready for the next level!</p>
+            <p class="score-errors" x-show="(testQuestions.length - testCorrectCount) > 0"
+               x-text="(testQuestions.length - testCorrectCount) + ' error' + (testQuestions.length - testCorrectCount !== 1 ? 's' : '')"></p>
+            <template x-if="testLevel < 10">
+              <p>Ready for Level <span x-text="testLevel + 1"></span>!</p>
             </template>
           </div>
         </template>
@@ -288,6 +308,7 @@ function missionsApp() {
     testPassed: false,
     testFailReason: '',
     testTimeLimit: null,
+    testMaxErrors: 0,
     testTimeRemaining: 0,
     testTimer: null,
     testStartTime: null,
@@ -460,7 +481,7 @@ function missionsApp() {
 
     async startTest(level) {
       this.view = 'test';
-      this.testLevel = Math.min(level, 3);
+      this.testLevel = Math.min(level, 10);
       this.testQuestionIndex = 0;
       this.testCorrectCount = 0;
       this.testComplete = false;
@@ -474,6 +495,7 @@ function missionsApp() {
         const data = await resp.json();
         this.testQuestions = data.questions;
         this.testTimeLimit = data.time_limit;
+        this.testMaxErrors = data.max_errors ?? 0;
         this.testTimeRemaining = data.time_limit || 0;
         this.testStartTime = Date.now();
 

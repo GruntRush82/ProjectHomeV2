@@ -10,6 +10,9 @@ class Mission(db.Model):
 
     __tablename__ = "mission"
 
+    VALID_GEM_TYPES = {"ruby", "emerald", "diamond", "sapphire", "amethyst", "topaz"}
+    VALID_GEM_SIZES = {"small", "medium", "large"}
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -17,6 +20,10 @@ class Mission(db.Model):
     config = db.Column(db.JSON, nullable=False, default=dict)
     reward_cash = db.Column(db.Float, nullable=False, default=0.0)
     reward_icon = db.Column(db.String(50), nullable=False)
+    reward_xp = db.Column(db.Integer, nullable=False, default=500)
+    reward_description = db.Column(db.String(300), nullable=True)
+    gem_type = db.Column(db.String(20), nullable=True)   # ruby/emerald/diamond/sapphire/amethyst/topaz
+    gem_size = db.Column(db.String(10), nullable=True)   # small/medium/large
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     assignments = db.relationship(
@@ -32,6 +39,10 @@ class Mission(db.Model):
             "config": self.config,
             "reward_cash": round(self.reward_cash, 2),
             "reward_icon": self.reward_icon,
+            "reward_xp": self.reward_xp or 500,
+            "reward_description": self.reward_description,
+            "gem_type": self.gem_type,
+            "gem_size": self.gem_size,
             "created_at": self.created_at.isoformat(),
         }
 

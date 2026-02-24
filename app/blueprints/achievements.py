@@ -330,6 +330,23 @@ def get_profile():
                 "locked": False,
             })
 
+    # Completed mission gems
+    completed_assignments = MissionAssignment.query.filter_by(
+        user_id=user_id,
+        state=MissionAssignment.STATE_COMPLETED,
+    ).all()
+    completed_missions = []
+    for ma in completed_assignments:
+        m = ma.mission
+        if m:
+            completed_missions.append({
+                "mission_title": m.title,
+                "gem_type": m.gem_type,
+                "gem_size": m.gem_size,
+                "reward_description": m.reward_description,
+                "completed_at": ma.completed_at.isoformat() if ma.completed_at else None,
+            })
+
     return jsonify({
         "username": user.username,
         "icon": user.icon,
@@ -342,9 +359,12 @@ def get_profile():
         "streak_best": user.streak_best,
         "fire_mode": user.fire_mode,
         "theme_color": user.theme_color,
+        "is_admin": user.is_admin,
         "achievements_unlocked": total_unlocked,
         "recent_achievements": recent,
         "available_icons": available,
+        "completed_missions": completed_missions,
+        "lifestyle_points": getattr(user, "lifestyle_points", 0) or 0,
     })
 
 

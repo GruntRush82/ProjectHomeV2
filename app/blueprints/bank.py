@@ -141,6 +141,18 @@ def bank_overview():
     weekly_rate = _bank_cfg("interest_rate")
     yearly_projection = round(total_savings * weekly_rate * 52, 2)
 
+    # Last 8 allowance transactions, newest first
+    allowance_history = Transaction.query.filter_by(
+        user_id=user_id, type=Transaction.TYPE_ALLOWANCE
+    ).order_by(Transaction.created_at.desc()).limit(8).all()
+
+    # Goal progress: earnings since goal was set (baseline snapshot taken at creation)
+    # Never reduced by cashout; reduced by new locked savings deposits
+    current_total = account.cash_balance + account.total_cashed_out + unlocked_total
+    goal_progress = round(
+        max(0.0, current_total - (goal.progress_baseline if goal else 0.0)), 2
+    )
+
     return jsonify({
         "account": account.to_dict(),
         "cashout_available": cashout_available,
@@ -149,10 +161,20 @@ def bank_overview():
         "yearly_projection": yearly_projection,
         "deposits": [d.to_dict() for d in deposits],
         "goal": goal.to_dict() if goal else None,
+        "goal_progress": goal_progress,
         "savings_max": _bank_cfg("savings_max"),
         "savings_deposit_min": _bank_cfg("savings_deposit_min"),
         "cashout_min": _bank_cfg("cashout_min"),
         "fire_mode": user.fire_mode,
+        "allowance": round(user.allowance or 0, 2),
+        "allowance_history": [
+            {
+                "amount": round(t.amount, 2),
+                "created_at": t.created_at.isoformat(),
+                "description": t.description or "",
+            }
+            for t in allowance_history
+        ],
     })
 
 
@@ -299,14 +321,6 @@ def savings_deposit():
     from app.services.achievements import check_achievements
     achievements = check_achievements(user_id, "savings_deposit")
 
-    # Check if savings goal is completed
-    goal = SavingsGoal.query.filter_by(user_id=user_id, completed_at=None).first()
-    new_total = current_savings + amount
-    if goal and new_total >= goal.target_amount:
-        goal.completed_at = datetime.utcnow()
-        db.session.commit()
-        achievements.extend(check_achievements(user_id, "savings_goal_completed"))
-
     return jsonify({
         "deposit": deposit.to_dict(),
         "account": account.to_dict(),
@@ -382,19 +396,59 @@ def savings_goal():
     ).first()
 
     if existing:
+        # Edit: only rename / retarget — baseline stays so progress isn't reset
         existing.name = name
         existing.target_amount = target
         goal = existing
     else:
+        # New goal: snapshot current earnings as baseline
+        account = _get_or_create_account(user_id)
+        unlocked_now = sum(d.amount for d in _unlocked_deposits(user_id))
+        baseline = account.cash_balance + account.total_cashed_out + unlocked_now
         goal = SavingsGoal(
             user_id=user_id,
             name=name,
             target_amount=target,
+            progress_baseline=round(baseline, 2),
         )
         db.session.add(goal)
 
     db.session.commit()
     return jsonify(goal.to_dict()), 201
+
+
+@bank_bp.route("/bank/savings/goal/clear", methods=["POST"])
+def clear_savings_goal():
+    """Mark the current savings goal as completed (kid is ready to reset)."""
+    result = _require_login()
+    if result[1] is None:
+        return result[0], 401
+
+    user_id, _ = result
+    goal = SavingsGoal.query.filter_by(user_id=user_id, completed_at=None).first()
+    if not goal:
+        return jsonify({"error": "No active goal"}), 404
+
+    goal.completed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"cleared": True})
+
+
+@bank_bp.route("/bank/savings/goal", methods=["DELETE"])
+def delete_savings_goal():
+    """Abandon (delete) the current active savings goal."""
+    result = _require_login()
+    if result[1] is None:
+        return result[0], 401
+
+    user_id, _ = result
+    goal = SavingsGoal.query.filter_by(user_id=user_id, completed_at=None).first()
+    if not goal:
+        return jsonify({"error": "No active goal"}), 404
+
+    db.session.delete(goal)
+    db.session.commit()
+    return jsonify({"deleted": True})
 
 
 @bank_bp.route("/bank/transactions")

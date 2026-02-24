@@ -28,6 +28,21 @@ def create_app(testing=False):
         scheduler.init_app(flask_app)
         scheduler.start()
 
+        def _scheduled_weekly_reset():
+            with flask_app.app_context():
+                from app.blueprints.chores import _weekly_archive
+                _weekly_archive(send_reports=False)
+
+        scheduler.add_job(
+            id="weekly_reset",
+            func=_scheduled_weekly_reset,
+            trigger="cron",
+            day_of_week="mon",
+            hour=0,
+            minute=1,
+            replace_existing=True,
+        )
+
     # Import models so Alembic / create_all() can see them
     with flask_app.app_context():
         import app.models  # noqa: F401
@@ -49,6 +64,7 @@ def create_app(testing=False):
 
 def _register_blueprints(flask_app):
     """Import and register all blueprints."""
+    from app.blueprints.admin import admin_bp
     from app.blueprints.auth import auth_bp
     from app.blueprints.calendar_bp import calendar_bp
     from app.blueprints.chores import chores_bp
@@ -57,7 +73,9 @@ def _register_blueprints(flask_app):
     from app.blueprints.bank import bank_bp
     from app.blueprints.missions import missions_bp
     from app.blueprints.achievements import achievements_bp
+    from app.blueprints.lifestyle import lifestyle_bp
 
+    flask_app.register_blueprint(admin_bp)
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(calendar_bp)
     flask_app.register_blueprint(chores_bp)
@@ -66,6 +84,7 @@ def _register_blueprints(flask_app):
     flask_app.register_blueprint(bank_bp)
     flask_app.register_blueprint(missions_bp)
     flask_app.register_blueprint(achievements_bp)
+    flask_app.register_blueprint(lifestyle_bp)
 
 
 def _register_auth_hook(flask_app):

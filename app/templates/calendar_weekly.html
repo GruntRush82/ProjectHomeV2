@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar — Felker Family Hub{% endblock %}
+
+{% block content %}
+<div x-data="calendarWeekApp()" x-init="init()" x-cloak>
+
+    <!-- Header -->
+    <div class="calendar-header">
+        <div class="calendar-header-left">
+            <h1 class="page-title">Calendar</h1>
+            <a href="/today" class="btn-ghost btn-sm">&larr; Today</a>
+        </div>
+        <div class="week-nav">
+            <button class="btn-ghost btn-sm" @click="prevWeek()">&laquo; Prev</button>
+            <span class="week-label" x-text="weekLabel"></span>
+            <button class="btn-ghost btn-sm" @click="nextWeek()">Next &raquo;</button>
+        </div>
+        <button class="btn-primary btn-sm" @click="showEventForm = true">+ Add Event</button>
+    </div>
+
+    <!-- Loading state -->
+    <div x-show="!loaded" class="empty-state">Loading...</div>
+
+    <!-- 7-column week grid -->
+    <div class="week-grid" x-show="loaded">
+        <template x-for="day in days" :key="day.date">
+            <div class="week-day-col" :class="{'week-today': day.is_today}">
+                <!-- Day header -->
+                <div class="week-day-header">
+                    <div class="week-day-name" x-text="day.day_name.slice(0, 3)"></div>
+                    <div class="week-day-date" x-text="formatDayNum(day.date)"></div>
+                </div>
+
+                <!-- Events list -->
+                <div class="week-events-list">
+                    <div x-show="day.events.length === 0" class="week-empty">No events</div>
+                    <template x-for="(ev, i) in day.events" :key="i">
+                        <div class="week-event-card">
+                            <span class="week-event-color"
+                                  :style="'background:' + (ev.color_hex || '#46d6db')"></span>
+                            <div class="week-event-body">
+                                <div class="week-event-title" x-text="ev.title"></div>
+                                <div class="week-event-time" x-text="formatTime(ev.start_time)"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Add Event Modal -->
+    <div class="modal-overlay" x-show="showEventForm" x-cloak @click.self="showEventForm = false">
+        <div class="modal-card">
+            <h2>Add Event</h2>
+            <input type="text" x-model="newEvent.title" placeholder="Event title"
+                   class="form-input" @keydown.enter="createEvent()">
+            <input type="date" x-model="newEvent.date" class="form-input">
+            <input type="time" x-model="newEvent.time" class="form-input"
+                   placeholder="Time (optional)">
+            <input type="text" x-model="newEvent.description" placeholder="Description (optional)"
+                   class="form-input">
+            <div class="modal-actions">
+                <button class="btn-ghost" @click="showEventForm = false">Cancel</button>
+                <button class="btn-primary" @click="createEvent()"
+                        :disabled="!newEvent.title.trim()">Add Event</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash message -->
+    <div class="bank-flash" x-show="flashMsg" x-cloak :class="flashType" x-text="flashMsg"></div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('calendarWeekApp', () => ({
+        currentStart: '',
+        weekLabel: '',
+        days: [],
+        loaded: false,
+        showEventForm: false,
+        newEvent: { title: '', date: '', time: '', description: '' },
+        flashMsg: '',
+        flashType: 'success',
+
+        init() {
+            // Start at current Monday (local time)
+            const today = new Date();
+            const dow = today.getDay(); // 0=Sun, 1=Mon
+            const daysBack = dow === 0 ? 6 : dow - 1;
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - daysBack);
+            this.currentStart = this._toDateStr(monday);
+            this.loadWeek();
+        },
+
+        _toDateStr(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        },
+
+        async loadWeek() {
+            this.loaded = false;
+            try {
+                const res = await fetch('/api/calendar/week?start=' + this.currentStart);
+                if (!res.ok) { this.loaded = true; return; }
+                const data = await res.json();
+                this.days = data.days;
+                this.weekLabel = this._formatWeekLabel(data.week_start, data.week_end);
+                // Default new event date to today if in week, else first day
+                const todayStr = this._toDateStr(new Date());
+                const inWeek = data.days.some(d => d.date === todayStr);
+                this.newEvent.date = inWeek ? todayStr : data.week_start;
+                this.loaded = true;
+            } catch (e) {
+                console.error('Failed to load week:', e);
+                this.loaded = true;
+            }
+        },
+
+        prevWeek() {
+            const d = new Date(this.currentStart + 'T00:00:00');
+            d.setDate(d.getDate() - 7);
+            this.currentStart = this._toDateStr(d);
+            this.loadWeek();
+        },
+
+        nextWeek() {
+            const d = new Date(this.currentStart + 'T00:00:00');
+            d.setDate(d.getDate() + 7);
+            this.currentStart = this._toDateStr(d);
+            this.loadWeek();
+        },
+
+        async createEvent() {
+            const title = this.newEvent.title.trim();
+            if (!title) return;
+            try {
+                const body = {
+                    title,
+                    event_date: this.newEvent.date,
+                    event_time: this.newEvent.time || undefined,
+                    description: this.newEvent.description.trim() || undefined,
+                };
+                const res = await fetch('/calendar/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) { this.flash('Failed to create event', 'error'); return; }
+                this.showEventForm = false;
+                this.newEvent.title = '';
+                this.newEvent.time = '';
+                this.newEvent.description = '';
+                this.flash('Event added!', 'success');
+                this.loadWeek();
+            } catch (e) {
+                this.flash('Failed to create event', 'error');
+            }
+        },
+
+        _formatWeekLabel(start, end) {
+            const s = new Date(start + 'T00:00:00');
+            const e = new Date(end + 'T00:00:00');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            if (s.getMonth() === e.getMonth()) {
+                return months[s.getMonth()] + ' ' + s.getDate() + '–' + e.getDate() + ', ' + s.getFullYear();
+            }
+            return months[s.getMonth()] + ' ' + s.getDate() + ' – ' + months[e.getMonth()] + ' ' + e.getDate() + ', ' + e.getFullYear();
+        },
+
+        formatDayNum(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return (d.getMonth() + 1) + '/' + d.getDate();
+        },
+
+        formatTime(timeStr) {
+            if (!timeStr) return 'All day';
+            try {
+                const d = new Date(timeStr);
+                if (!isNaN(d)) {
+                    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                }
+            } catch {}
+            return timeStr;
+        },
+
+        flash(msg, type = 'success') {
+            this.flashMsg = msg;
+            this.flashType = type;
+            setTimeout(() => { this.flashMsg = ''; }, 3000);
+        }
+    }));
+});
+</script>
+{% endblock %}

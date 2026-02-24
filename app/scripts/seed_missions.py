@@ -47,21 +47,17 @@ MISSION_DEFINITIONS = [
 
 
 def seed_missions():
-    """Insert mission definitions if they don't already exist."""
-    created = 0
-    for defn in MISSION_DEFINITIONS:
-        existing = Mission.query.filter_by(
-            mission_type=defn["mission_type"],
-            title=defn["title"],
-        ).first()
-        if not existing:
-            mission = Mission(**defn)
-            db.session.add(mission)
-            created += 1
+    """Delete all existing missions and leave DB empty for admin to recreate.
 
-    if created:
+    Admin will manually create missions with gem/XP selections via the admin UI.
+    This function is intentionally a no-op seeder — it clears old seeds so
+    the admin can define missions with the new reward fields.
+    """
+    deleted = Mission.query.count()
+    if deleted > 0:
+        Mission.query.delete()
         db.session.commit()
-    return created
+    return 0  # no missions seeded — admin will create via UI
 
 
 if __name__ == "__main__":

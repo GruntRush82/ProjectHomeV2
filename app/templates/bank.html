@@ -18,18 +18,57 @@
     <!-- ═══════ MAIN TAB ═══════ -->
     <div x-show="tab === 'main'">
 
-        <!-- Cashout Section -->
-        <section class="bank-cashout-section">
-            <div class="bank-cashout-label">Available to cash out</div>
-            <div class="bank-cashout-amount" x-text="'$' + cashoutDisplay"></div>
-            <button class="btn-primary bank-cashout-btn"
-                    @click="showCashoutModal = true"
-                    :disabled="(cashBalance + unlockedSavings + accruedInterest) < cashoutMin">
-                Cash Out
-            </button>
+        <!-- Top hero: Cash Out + Lifestyle Points side by side -->
+        <section class="bank-hero-row">
+            <!-- Cash out side -->
+            <div class="bank-cashout-section">
+                <div class="bank-cashout-label">Available to cash out</div>
+                <div class="bank-cashout-amount" x-text="'$' + cashoutDisplay"></div>
+                <button class="btn-primary bank-cashout-btn"
+                        @click="showCashoutModal = true"
+                        :disabled="(cashBalance + unlockedSavings + accruedInterest) < cashoutMin">
+                    Cash Out
+                </button>
+            </div>
+
+            <!-- Lifestyle points side -->
+            <div class="bank-lifestyle-hero" x-show="lifestyleLoaded">
+                <div class="bank-lifestyle-hero-label">Lifestyle Points</div>
+                <div class="bank-lifestyle-hero-points" x-text="lifestylePoints + ' ⭐'"></div>
+                <button class="btn-lifestyle-rewards" @click="showRewardsModal = true">
+                    Rewards &#10024;
+                </button>
+            </div>
         </section>
 
-        <!-- Fire Mode allowance indicator -->
+        <!-- Allowance note (compact, like fire mode) -->
+        <section class="bank-allowance-note" x-show="allowance > 0">
+            <span class="allowance-note-icon">&#128181;</span>
+            <span class="allowance-note-text">
+                Weekly allowance: <strong x-text="'$' + allowance.toFixed(2)"></strong>
+                &nbsp;&middot;&nbsp; Full: <span x-text="'$' + allowance.toFixed(2)"></span>
+                &nbsp;&middot;&nbsp; Half: <span x-text="'$' + (allowance / 2).toFixed(2)"></span>
+            </span>
+            <button class="btn-ghost btn-xs allowance-history-btn"
+                    x-show="allowanceHistory.length > 0"
+                    @click="showAllowanceHistory = !showAllowanceHistory"
+                    x-text="showAllowanceHistory ? 'Hide' : 'History'"></button>
+            <!-- Collapsible history -->
+            <div x-show="showAllowanceHistory" x-cloak class="bank-allowance-history-inline">
+                <template x-for="(txn, i) in allowanceHistory" :key="i">
+                    <div class="ledger-row ledger-allowance">
+                        <div class="ledger-icon">&#128181;</div>
+                        <div class="ledger-details">
+                            <div class="ledger-desc" x-text="txn.description || 'Weekly allowance'"></div>
+                            <div class="ledger-date" x-text="formatDateTime(txn.created_at)"></div>
+                        </div>
+                        <div class="ledger-amount ledger-credit" x-text="'+$' + txn.amount.toFixed(2)"></div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- Fire Mode banner -->
         {% if current_user and current_user.fire_mode %}
         <section class="bank-fire-mode-banner">
             <span class="fire-mode-icon">&#128293;</span>
@@ -42,10 +81,77 @@
 
         <!-- Cash + Savings overview row -->
         <div class="bank-overview-row">
-            <!-- Cash card -->
-            <section class="bank-card">
-                <div class="bank-card-label">Cash Balance</div>
-                <div class="bank-card-amount" x-text="'$' + cashBalance.toFixed(2)"></div>
+            <!-- Savings Goal card (replaces cash balance) -->
+            <section class="bank-card bank-goal-card">
+
+                <!-- No goal: invite -->
+                <div x-show="!goal && !showGoalForm" class="bank-goal-invite" @click="showGoalForm = true">
+                    <div class="bank-goal-invite-icon">&#127775;</div>
+                    <div class="bank-goal-invite-text">Set a savings goal</div>
+                    <div class="bank-goal-invite-sub">What are you saving up for?</div>
+                </div>
+
+                <!-- Goal form (new or edit) -->
+                <div x-show="showGoalForm" class="bank-goal-form-inline">
+                    <div class="bank-goal-form-title" x-text="goal ? 'Edit Goal' : 'New Goal'"></div>
+                    <input type="text" x-model="goalName"
+                           placeholder="What are you saving for?"
+                           class="form-input form-input-sm"
+                           @keydown.enter="saveGoal()">
+                    <input type="number" x-model.number="goalTarget"
+                           placeholder="Target $"
+                           class="form-input form-input-sm"
+                           step="0.01" min="0" @keydown.enter="saveGoal()">
+                    <div class="bank-goal-form-btns">
+                        <button class="btn-ghost btn-sm" @click="showGoalForm = false; goalName=''; goalTarget=null">Cancel</button>
+                        <button class="btn-primary btn-sm" @click="saveGoal()"
+                                :disabled="!goalName.trim() || !goalTarget || goalTarget <= 0">Save</button>
+                    </div>
+                </div>
+
+                <!-- Goal in progress -->
+                <div x-show="goal && !showGoalForm && goalProgress < (goal?.target_amount || Infinity)" class="bank-goal-progress-state">
+                    <div class="bank-goal-card-name" x-text="goal?.name"></div>
+                    <div class="bank-goal-track-wrap">
+                        <div class="bank-goal-track">
+                            <div class="bank-goal-fill"
+                                 :style="'width:' + Math.min(100, goalProgress / (goal?.target_amount || 1) * 100) + '%'"></div>
+                        </div>
+                        <div class="bank-goal-pct"
+                             x-text="Math.floor(goalProgress / (goal?.target_amount || 1) * 100) + '%'"></div>
+                    </div>
+                    <div class="bank-goal-amounts">
+                        <span class="bank-goal-current" x-text="'$' + goalProgress.toFixed(2)"></span>
+                        <span class="bank-goal-sep">of</span>
+                        <span class="bank-goal-target" x-text="'$' + (goal?.target_amount || 0).toFixed(2)"></span>
+                    </div>
+                    <div class="bank-goal-actions">
+                        <button class="btn-ghost btn-xs"
+                                @click="showGoalForm = true; goalName = goal.name; goalTarget = goal.target_amount">
+                            Edit
+                        </button>
+                        <button class="btn-ghost btn-xs btn-danger-ghost"
+                                @click="deleteGoal()">
+                            &#10005; Delete
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Goal COMPLETE: celebration state -->
+                <div x-show="goal && !showGoalForm && goalProgress >= (goal?.target_amount || Infinity)"
+                     class="bank-goal-complete-state"
+                     x-init="if (goal && goalProgress >= (goal?.target_amount || Infinity)) goalCelebrate()">
+                    <div class="bank-goal-trophy">&#127942;</div>
+                    <div class="bank-goal-complete-title">YOU DID IT!</div>
+                    <div class="bank-goal-complete-name" x-text="goal?.name"></div>
+                    <div class="bank-goal-complete-bar">
+                        <div class="bank-goal-complete-fill"></div>
+                    </div>
+                    <button class="btn-primary btn-sm bank-goal-clear-btn" @click="clearGoal()">
+                        &#127881; I'm Ready! Clear Goal
+                    </button>
+                </div>
+
             </section>
 
             <!-- Savings card -->
@@ -201,36 +307,6 @@
             </div>
         </section>
 
-        <!-- Savings Goal -->
-        <section class="bank-card" x-show="goal || showGoalForm">
-            <div class="section-header">
-                <h2 class="section-title">Savings Goal</h2>
-                <button class="btn-ghost btn-sm" @click="showGoalForm = !showGoalForm"
-                        x-text="showGoalForm ? 'Cancel' : (goal ? 'Edit' : '+ Set Goal')"></button>
-            </div>
-
-            <!-- Goal progress -->
-            <div x-show="goal && !showGoalForm" class="bank-goal-display">
-                <div class="bank-goal-name" x-text="goal?.name"></div>
-                <div class="progress-track">
-                    <div class="progress-fill"
-                         :style="'width:' + Math.min(100, totalSavings / (goal?.target_amount || 1) * 100) + '%'"></div>
-                </div>
-                <div class="bank-goal-progress"
-                     x-text="'$' + totalSavings.toFixed(2) + ' / $' + (goal?.target_amount || 0).toFixed(2)"></div>
-            </div>
-
-            <!-- Goal form -->
-            <div x-show="showGoalForm" class="bank-goal-form">
-                <input type="text" x-model="goalName" placeholder="What are you saving for?"
-                       class="form-input" @keydown.enter="saveGoal()">
-                <input type="number" x-model.number="goalTarget" placeholder="Target amount"
-                       class="form-input" step="0.01" min="0" @keydown.enter="saveGoal()">
-                <button class="btn-primary" @click="saveGoal()"
-                        :disabled="!goalName.trim() || !goalTarget || goalTarget <= 0">Save Goal</button>
-            </div>
-        </section>
-
         <!-- Stats -->
         <section class="bank-card bank-stats">
             <h2 class="section-title">Stats</h2>
@@ -244,10 +320,55 @@
             </div>
         </section>
 
-        <!-- Set Goal button (when no goal exists) -->
-        <button class="btn-ghost bank-set-goal-btn" x-show="!goal && !showGoalForm"
-                @click="showGoalForm = true">+ Set a Savings Goal</button>
+    </div>
 
+    <!-- ═══════ LIFESTYLE REWARDS MODAL ═══════ -->
+    <div class="modal-overlay" x-show="showRewardsModal" x-cloak @click.self="showRewardsModal = false">
+        <div class="modal-card modal-card-wide">
+            <div class="modal-header-row">
+                <h2 class="modal-title">&#11088; Lifestyle Rewards</h2>
+                <div class="lifestyle-modal-balance">
+                    <span class="lifestyle-modal-pts" x-text="lifestylePoints"></span>
+                    <span class="lifestyle-modal-pts-label">pts</span>
+                </div>
+            </div>
+
+            <!-- Privileges shop -->
+            <div x-show="lifestylePrivileges.length === 0" class="empty-state">No rewards available yet</div>
+            <div class="lifestyle-rewards-grid">
+                <template x-for="priv in lifestylePrivileges" :key="priv.id">
+                    <div class="lifestyle-reward-card" :class="{ 'reward-affordable': lifestylePoints >= priv.point_cost }">
+                        <div class="reward-info">
+                            <div class="reward-name" x-text="priv.name"></div>
+                            <div class="reward-desc" x-show="priv.description" x-text="priv.description"></div>
+                        </div>
+                        <div class="reward-footer">
+                            <span class="reward-cost" x-text="priv.point_cost + ' pt' + (priv.point_cost !== 1 ? 's' : '')"></span>
+                            <button class="btn-primary btn-sm"
+                                    @click="redeemPrivilege(priv.id, priv.point_cost)"
+                                    :disabled="lifestylePoints < priv.point_cost">
+                                Redeem
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Pending redemptions -->
+            <div x-show="pendingRedemptions.length > 0" class="lifestyle-pending-section">
+                <h3 class="lifestyle-pending-title">&#8987; Pending</h3>
+                <template x-for="r in pendingRedemptions" :key="r.id">
+                    <div class="lifestyle-pending-row">
+                        <span x-text="r.privilege_name"></span>
+                        <span class="redemption-badge pending">Pending</span>
+                    </div>
+                </template>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-ghost" @click="showRewardsModal = false">Close</button>
+            </div>
+        </div>
     </div>
 
     <!-- ═══════ HISTORY TAB ═══════ -->
@@ -324,6 +445,10 @@ document.addEventListener('alpine:init', () => {
         totalInterestEarned: 0,
         deposits: [],
         goal: null,
+        // Allowance
+        allowance: 0,
+        allowanceHistory: [],
+        showAllowanceHistory: false,
         // Config
         savingsMax: 100,
         depositMin: 1,
@@ -338,16 +463,24 @@ document.addEventListener('alpine:init', () => {
         // UI state
         depositAmount: null,
         showCashoutModal: false,
+        showRewardsModal: false,
         cashingOut: false,
         showGoalForm: false,
         goalName: '',
         goalTarget: null,
+        goalProgress: 0,
+        goalCelebrated: false,
         flashMsg: '',
         flashType: 'success',
         // History
         transactions: [],
         historyPage: 1,
         historyPages: 1,
+        // Lifestyle
+        lifestylePoints: 0,
+        lifestylePrivileges: [],
+        pendingRedemptions: [],
+        lifestyleLoaded: false,
 
         async loadData() {
             try {
@@ -367,9 +500,14 @@ document.addEventListener('alpine:init', () => {
                 this.savingsMax = data.savings_max;
                 this.depositMin = data.savings_deposit_min;
                 this.cashoutMin = data.cashout_min;
+                this.allowance = data.allowance || 0;
+                this.allowanceHistory = data.allowance_history || [];
+                this.goalProgress = data.goal_progress || 0;
 
                 // Start interest ticker
                 this.startTicker();
+                // Load lifestyle data
+                this.loadLifestyle();
             } catch (e) {
                 console.error('Failed to load bank data:', e);
             }
@@ -459,6 +597,8 @@ document.addEventListener('alpine:init', () => {
                     confetti({ particleCount: 300, spread: 140, origin: { y: 0.4 } });
                 }
                 this.loadData();
+                // Refresh the nav ticker immediately so it doesn't lag behind
+                window.dispatchEvent(new CustomEvent('bank:refresh-ticker'));
             } catch (e) {
                 this.cashingOut = false;
                 this.flash('Cashout failed', 'error');
@@ -496,12 +636,53 @@ document.addEventListener('alpine:init', () => {
                 if (!res.ok) { this.flash(data.error, 'error'); return; }
 
                 this.goal = data;
+                this.goalCelebrated = false;
                 this.showGoalForm = false;
                 this.goalName = '';
                 this.goalTarget = null;
                 this.flash('Goal saved!', 'success');
             } catch (e) {
                 this.flash('Failed to save goal', 'error');
+            }
+        },
+
+        async clearGoal() {
+            try {
+                const res = await fetch('/bank/savings/goal/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok) return;
+                this.goal = null;
+                this.goalProgress = 0;
+                this.goalCelebrated = false;
+                this.flash('Goal cleared! Set a new one.', 'success');
+            } catch (e) {
+                this.flash('Failed to clear goal', 'error');
+            }
+        },
+
+        async deleteGoal() {
+            try {
+                const res = await fetch('/bank/savings/goal', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok) return;
+                this.goal = null;
+                this.goalProgress = 0;
+                this.goalCelebrated = false;
+                this.flash('Goal removed.', 'success');
+            } catch (e) {
+                this.flash('Failed to delete goal', 'error');
+            }
+        },
+
+        goalCelebrate() {
+            if (this.goalCelebrated) return;
+            this.goalCelebrated = true;
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
             }
         },
 
@@ -514,6 +695,54 @@ document.addEventListener('alpine:init', () => {
                 this.historyPages = data.pages;
             } catch (e) {
                 console.error('Failed to load history:', e);
+            }
+        },
+
+        async loadLifestyle() {
+            try {
+                const [privRes, redemRes] = await Promise.all([
+                    fetch('/api/lifestyle/privileges'),
+                    fetch('/api/lifestyle/redemptions'),
+                ]);
+                if (privRes.ok) {
+                    const pd = await privRes.json();
+                    this.lifestylePrivileges = pd.privileges || [];
+                }
+                if (redemRes.ok) {
+                    const rd = await redemRes.json();
+                    const all = rd.redemptions || [];
+                    this.pendingRedemptions = all.filter(r => r.status === 'pending');
+                    // Get lifestyle points from profile endpoint
+                    const profileRes = await fetch('/api/profile');
+                    if (profileRes.ok) {
+                        const profile = await profileRes.json();
+                        this.lifestylePoints = profile.lifestyle_points || 0;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load lifestyle data:', e);
+            }
+            this.lifestyleLoaded = true;
+        },
+
+        async redeemPrivilege(privilegeId, cost) {
+            if (this.lifestylePoints < cost) {
+                this.flash('Not enough points', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/lifestyle/redeem', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ privilege_id: privilegeId })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error || 'Redemption failed', 'error'); return; }
+                this.lifestylePoints -= cost;
+                this.pendingRedemptions.push(data.redemption);
+                this.flash('Redeemed! Check pending below.', 'success');
+            } catch (e) {
+                this.flash('Redemption failed', 'error');
             }
         },
 

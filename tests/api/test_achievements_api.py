@@ -95,7 +95,7 @@ class TestAchievementCatalog:
         client = logged_in_client(user_id=sample_users["kid1"].id)
         resp = client.get("/api/achievements/catalog")
         data = resp.get_json()
-        assert len(data["achievements"]) == 14
+        assert len(data["achievements"]) == 17
 
     def test_catalog_shows_locked_unlocked(self, app, logged_in_client, sample_users):
         seed_achievements()

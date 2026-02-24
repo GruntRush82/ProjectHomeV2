@@ -8,10 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.1.1">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-    <div class="pin-page" x-data="pinApp">
+    <div class="pin-page">
         <div class="login-brand">
             <h1>Felker Family Hub</h1>
         </div>
@@ -25,60 +24,65 @@
                 Too many attempts. Try again in {{ lockout_remaining }} minutes.
             </div>
             {% else %}
+
             <!-- PIN dots -->
-            <div class="pin-dots">
-                <template x-for="i in 4">
-                    <div class="pin-dot" :class="{ 'filled': pin.length >= i }"></div>
-                </template>
+            <div class="pin-dots" id="pinDots">
+                <div class="pin-dot" id="dot0"></div>
+                <div class="pin-dot" id="dot1"></div>
+                <div class="pin-dot" id="dot2"></div>
+                <div class="pin-dot" id="dot3"></div>
             </div>
 
             <!-- Number pad -->
             <div class="pin-pad">
-                <template x-for="n in [1,2,3,4,5,6,7,8,9]">
-                    <button class="pin-key" type="button" @click="addDigit(n)" x-text="n"></button>
-                </template>
+                <button class="pin-key" type="button" onclick="addDigit(1)">1</button>
+                <button class="pin-key" type="button" onclick="addDigit(2)">2</button>
+                <button class="pin-key" type="button" onclick="addDigit(3)">3</button>
+                <button class="pin-key" type="button" onclick="addDigit(4)">4</button>
+                <button class="pin-key" type="button" onclick="addDigit(5)">5</button>
+                <button class="pin-key" type="button" onclick="addDigit(6)">6</button>
+                <button class="pin-key" type="button" onclick="addDigit(7)">7</button>
+                <button class="pin-key" type="button" onclick="addDigit(8)">8</button>
+                <button class="pin-key" type="button" onclick="addDigit(9)">9</button>
                 <div></div>
-                <button class="pin-key" type="button" @click="addDigit(0)">0</button>
-                <button class="pin-key backspace" type="button" @click="removeDigit()">&larr;</button>
+                <button class="pin-key" type="button" onclick="addDigit(0)">0</button>
+                <button class="pin-key backspace" type="button" onclick="removeDigit()">&larr;</button>
             </div>
 
-            <div class="pin-error" x-text="error">&nbsp;</div>
+            <div class="pin-error" id="pinError">{{ error or "&nbsp;" }}</div>
 
-            <!-- Hidden form for submission -->
-            <form method="POST" action="/pin" x-ref="pinForm" style="display:none;">
-                <input type="hidden" name="pin" x-model="pin">
+            <form method="POST" action="/pin" id="pinForm" style="display:none;">
+                <input type="hidden" name="pin" id="pinInput">
             </form>
+
             {% endif %}
         </div>
     </div>
 
     <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('pinApp', () => ({
-            pin: '',
-            error: '{{ error or "" }}',
-            submitting: false,
+    var pin = '';
 
-            addDigit(n) {
-                if (this.submitting || this.pin.length >= 4) return;
-                this.pin += String(n);
-                this.error = '';
-                if (this.pin.length === 4) {
-                    this.submit();
-                }
-            },
+    function updateDots() {
+        for (var i = 0; i < 4; i++) {
+            var dot = document.getElementById('dot' + i);
+            if (dot) dot.className = 'pin-dot' + (pin.length > i ? ' filled' : '');
+        }
+    }
 
-            removeDigit() {
-                if (this.submitting) return;
-                this.pin = this.pin.slice(0, -1);
-            },
+    function addDigit(n) {
+        if (pin.length >= 4) return;
+        pin += String(n);
+        updateDots();
+        if (pin.length === 4) {
+            document.getElementById('pinInput').value = pin;
+            document.getElementById('pinForm').submit();
+        }
+    }
 
-            submit() {
-                this.submitting = true;
-                this.$refs.pinForm.submit();
-            }
-        }));
-    });
+    function removeDigit() {
+        pin = pin.slice(0, -1);
+        updateDots();
+    }
     </script>
 </body>
 </html>

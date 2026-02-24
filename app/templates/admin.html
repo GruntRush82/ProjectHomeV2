@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block title %}Admin — Felker Family Hub{% endblock %}
+
+{% block content %}
+<div x-data="adminApp()" x-init="init()" x-cloak class="admin-container">
+
+  <!-- Header -->
+  <div class="admin-header">
+    <h1 class="admin-title">&#9881; Admin Panel</h1>
+    <a href="/admin/missions" class="btn-missions-link">Missions &#8599;</a>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="admin-tabs" role="tablist">
+    <button class="admin-tab" :class="{ active: tab === 'overview' }"
+            @click="tab = 'overview'; loadOverview()" role="tab">
+      Overview
+    </button>
+    <button class="admin-tab" :class="{ active: tab === 'users' }"
+            @click="tab = 'users'; loadUsers()" role="tab">
+      Users
+    </button>
+    <button class="admin-tab" :class="{ active: tab === 'settings' }"
+            @click="tab = 'settings'; loadConfig()" role="tab">
+      Settings
+    </button>
+    <button class="admin-tab" :class="{ active: tab === 'ips' }"
+            @click="tab = 'ips'; loadIPs()" role="tab">
+      Trusted IPs
+    </button>
+    <button class="admin-tab" :class="{ active: tab === 'lifestyle' }"
+            @click="tab = 'lifestyle'; loadLifestylePrivileges()" role="tab">
+      Lifestyle
+    </button>
+  </div>
+
+  <!-- Flash message -->
+  <div class="admin-flash" x-show="flashMsg" x-cloak x-transition
+       :class="flashType" x-text="flashMsg"></div>
+
+  <!-- ── Overview Tab ────────────────────────────────────────────── -->
+  <div x-show="tab === 'overview'" class="admin-tab-content">
+    <div class="overview-grid">
+      <template x-for="u in overviewUsers" :key="u.id">
+        <div class="overview-card glass-card">
+          <div class="overview-card-header">
+            <span class="overview-icon" :class="u.icon_css" x-text="u.icon_emoji"></span>
+            <div class="overview-name-block">
+              <div class="overview-username" x-text="u.username"></div>
+              <div class="overview-level-badge">
+                <span class="level-pill" x-text="'Lv' + u.level"></span>
+                <span class="level-name-text" x-text="u.level_name"></span>
+                <span x-show="u.fire_mode" class="fire-badge-mini">&#128293;</span>
+              </div>
+            </div>
+            <span x-show="u.is_admin" class="admin-crown" title="Admin">&#128081;</span>
+          </div>
+
+          <!-- XP mini-bar -->
+          <div class="overview-xp-bar">
+            <div class="overview-xp-fill"
+                 :style="'width:' + xpPct(u) + '%'"></div>
+          </div>
+          <div class="overview-xp-label"
+               x-text="u.xp + ' XP' + (u.next_level_xp ? ' / ' + u.next_level_xp : ' MAX')"></div>
+
+          <!-- Bank stats -->
+          <div class="overview-bank-row">
+            <div class="overview-stat">
+              <span class="overview-stat-val" x-text="'$' + u.cash_balance.toFixed(2)"></span>
+              <span class="overview-stat-lbl">Cash</span>
+            </div>
+            <div class="overview-stat">
+              <span class="overview-stat-val" x-text="'$' + u.total_savings.toFixed(2)"></span>
+              <span class="overview-stat-lbl">Savings</span>
+            </div>
+            <div class="overview-stat">
+              <span class="overview-stat-val" x-text="u.streak_current"></span>
+              <span class="overview-stat-lbl">Streak</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ── Users Tab ───────────────────────────────────────────────── -->
+  <div x-show="tab === 'users'" class="admin-tab-content">
+    <!-- New user form -->
+    <div class="admin-new-user glass-card">
+      <h2 class="section-title">+ New User</h2>
+      <div class="admin-new-user-form">
+        <input class="admin-input" x-model="newUser.username" placeholder="Username" />
+        <input class="admin-input" x-model="newUser.email" placeholder="Email (optional)" type="email" />
+        <input class="admin-input" x-model="newUser.allowance" placeholder="Allowance $" type="number" min="0" step="0.01" />
+        <label class="admin-check-label">
+          <input type="checkbox" x-model="newUser.is_admin" />
+          Admin
+        </label>
+        <button class="btn btn-accent" @click="createUser()"
+                :disabled="!newUser.username.trim()">Create</button>
+      </div>
+    </div>
+
+    <!-- User accordion list -->
+    <div class="user-accordion">
+      <template x-for="u in userList" :key="u.id">
+        <div class="user-accordion-item glass-card">
+          <div class="user-accordion-header" @click="toggleUser(u.id)">
+            <div class="user-accordion-name">
+              <span x-text="u.username"></span>
+              <span x-show="u.is_admin" class="admin-crown-sm">&#128081;</span>
+            </div>
+            <div class="user-accordion-meta">
+              <span x-text="'Lv' + u.level" class="level-pill-sm"></span>
+              <span x-text="'$' + (u.allowance || 0).toFixed(2)" class="allowance-chip"></span>
+            </div>
+            <span class="accordion-chevron" :class="{ open: openUserId === u.id }">&#8250;</span>
+          </div>
+
+          <!-- Expanded edit form -->
+          <div class="user-accordion-body" x-show="openUserId === u.id" x-transition>
+            <div class="user-edit-grid">
+              <div class="user-edit-field">
+                <label class="edit-label">Username</label>
+                <input class="admin-input" :id="'un-' + u.id"
+                       :value="u.username"
+                       @input="u.username = $event.target.value" />
+              </div>
+              <div class="user-edit-field">
+                <label class="edit-label">Email</label>
+                <input class="admin-input" type="email"
+                       :value="u.email"
+                       @input="u.email = $event.target.value" />
+              </div>
+              <div class="user-edit-field">
+                <label class="edit-label">Allowance ($)</label>
+                <input class="admin-input" type="number" min="0" step="0.01"
+                       :value="u.allowance"
+                       @input="u.allowance = parseFloat($event.target.value) || 0" />
+              </div>
+              <div class="user-edit-field user-edit-check">
+                <label class="admin-check-label">
+                  <input type="checkbox" :checked="u.is_admin"
+                         @change="u.is_admin = $event.target.checked" />
+                  Admin
+                </label>
+              </div>
+            </div>
+            <div class="user-edit-actions">
+              <button class="btn btn-accent" @click="saveUser(u)">Save</button>
+              <button class="btn btn-danger"
+                      @click="deleteUser(u)"
+                      :disabled="u.id === currentAdminId">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ── Settings Tab ────────────────────────────────────────────── -->
+  <div x-show="tab === 'settings'" class="admin-tab-content">
+
+    <!-- Bank & Rewards card -->
+    <div class="settings-card glass-card">
+      <h2 class="section-title">Bank &amp; Rewards</h2>
+      <div class="settings-grid">
+        <template x-for="key in bankKeys" :key="key">
+          <div class="settings-field" x-show="config[key]">
+            <label class="edit-label"
+                   x-text="config[key] ? config[key].label : ''"></label>
+            <div class="settings-input-row">
+              <input class="admin-input settings-input"
+                     type="number" step="any"
+                     :value="config[key] ? config[key].value : ''"
+                     @input="config[key].value = $event.target.value" />
+              <span class="settings-unit"
+                    x-text="config[key] ? config[key].unit : ''"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+      <button class="btn btn-accent settings-save"
+              @click="saveConfig(bankKeys)">Save Bank Settings</button>
+    </div>
+
+    <!-- Security card -->
+    <div class="settings-card glass-card">
+      <h2 class="section-title">Security</h2>
+      <div class="settings-grid">
+        <div class="settings-field" x-show="config.idle_timeout_min">
+          <label class="edit-label"
+                 x-text="config.idle_timeout_min ? config.idle_timeout_min.label : ''"></label>
+          <div class="settings-input-row">
+            <input class="admin-input settings-input"
+                   type="number" step="1" min="1"
+                   :value="config.idle_timeout_min ? config.idle_timeout_min.value : ''"
+                   @input="config.idle_timeout_min && (config.idle_timeout_min.value = $event.target.value)" />
+            <span class="settings-unit"
+                  x-text="config.idle_timeout_min ? config.idle_timeout_min.unit : ''"></span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-accent settings-save"
+              @click="saveConfig(['idle_timeout_min'])">Save Security Settings</button>
+
+      <!-- PIN change -->
+      <div class="pin-change-section">
+        <h3 class="pin-change-title">Change PIN</h3>
+        <div class="settings-input-row">
+          <input class="admin-input settings-input"
+                 type="password" placeholder="New PIN"
+                 x-model="newPin" autocomplete="new-password" />
+          <button class="btn btn-accent" @click="changePin()"
+                  :disabled="!newPin.trim()">Update PIN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Digest trigger -->
+    <div class="settings-card glass-card">
+      <h2 class="section-title">Weekly Digest</h2>
+      <p class="settings-hint">Send the family summary email now (normally runs automatically on Monday).</p>
+      <button class="btn btn-accent" @click="sendDigest()" :disabled="digestLoading">
+        <span x-show="!digestLoading">Send Digest Email</span>
+        <span x-show="digestLoading">Sending...</span>
+      </button>
+      <p x-show="digestResult" class="settings-hint" x-text="digestResult"></p>
+    </div>
+  </div>
+
+  <!-- ── Lifestyle Tab ──────────────────────────────────────────── -->
+  <div x-show="tab === 'lifestyle'" class="admin-tab-content">
+
+    <!-- New Privilege form -->
+    <div class="settings-card glass-card">
+      <h2 class="section-title">+ New Privilege</h2>
+      <div class="lifestyle-new-form">
+        <input class="admin-input" x-model="newPrivilege.name" placeholder="Privilege name" />
+        <input class="admin-input" x-model="newPrivilege.description" placeholder="Description (optional)" />
+        <input class="admin-input" type="number" min="1" step="1"
+               x-model.number="newPrivilege.point_cost" placeholder="Point cost" style="max-width:120px" />
+        <button class="btn btn-accent"
+                @click="createPrivilege()"
+                :disabled="!newPrivilege.name.trim()">Create</button>
+      </div>
+    </div>
+
+    <!-- Privilege list -->
+    <div class="settings-card glass-card">
+      <h2 class="section-title">All Privileges</h2>
+      <template x-if="lifestylePrivileges.length === 0">
+        <p class="empty-text">No privileges created yet.</p>
+      </template>
+      <div class="lifestyle-privilege-list">
+        <template x-for="p in lifestylePrivileges" :key="p.id">
+          <div class="lifestyle-privilege-row" :class="{ inactive: !p.active }">
+            <div class="lifestyle-privilege-info">
+              <span class="lifestyle-privilege-name" x-text="p.name"></span>
+              <span class="lifestyle-privilege-desc" x-text="p.description || ''"></span>
+            </div>
+            <div class="lifestyle-privilege-cost">
+              <span class="point-badge" x-text="p.point_cost + ' pt' + (p.point_cost !== 1 ? 's' : '')"></span>
+            </div>
+            <div class="lifestyle-privilege-actions">
+              <button class="btn btn-sm btn-outline"
+                      @click="togglePrivilegeEdit(p)">
+                <span x-text="editingPrivilegeId === p.id ? 'Cancel' : 'Edit'"></span>
+              </button>
+              <button class="btn btn-sm" :class="p.active ? 'btn-danger' : 'btn-accent'"
+                      @click="togglePrivilegeActive(p)"
+                      x-text="p.active ? 'Deactivate' : 'Reactivate'"></button>
+            </div>
+
+            <!-- Inline edit -->
+            <div x-show="editingPrivilegeId === p.id" x-cloak class="lifestyle-inline-edit">
+              <input class="admin-input" x-model="privilegeEdit.name" placeholder="Name" />
+              <input class="admin-input" x-model="privilegeEdit.description" placeholder="Description" />
+              <input class="admin-input" type="number" min="1"
+                     x-model.number="privilegeEdit.point_cost" style="max-width:100px" />
+              <button class="btn btn-accent btn-sm" @click="savePrivilegeEdit(p.id)">Save</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Trusted IPs Tab ─────────────────────────────────────────── -->
+  <div x-show="tab === 'ips'" class="admin-tab-content">
+    <div class="ip-table-wrap glass-card">
+      <table class="ip-table" x-show="ipList.length > 0">
+        <thead>
+          <tr>
+            <th>IP Address</th>
+            <th>Trusted At</th>
+            <th>Last Seen</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="ip in ipList" :key="ip.id">
+            <tr>
+              <td x-text="ip.ip_address" class="ip-address-cell"></td>
+              <td x-text="fmtDate(ip.trusted_at)" class="ip-date-cell"></td>
+              <td x-text="fmtDate(ip.last_seen)" class="ip-date-cell"></td>
+              <td>
+                <button class="btn btn-danger btn-sm"
+                        @click="revokeIP(ip)">Revoke</button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <div x-show="ipList.length === 0" class="empty-state">
+        No trusted IPs yet.
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('adminApp', () => ({
+    tab: 'overview',
+    flashMsg: '',
+    flashType: 'success',
+
+    // Overview
+    overviewUsers: [],
+
+    // Users
+    userList: [],
+    openUserId: null,
+    currentAdminId: null,
+    newUser: { username: '', email: '', allowance: '', is_admin: false },
+
+    // Config
+    config: {},
+    bankKeys: [
+      'interest_rate', 'savings_max', 'savings_deposit_min',
+      'cashout_min', 'savings_lock_days', 'fire_mode_bonus_pct'
+    ],
+    newPin: '',
+
+    // Digest
+    digestLoading: false,
+    digestResult: '',
+
+    // IPs
+    ipList: [],
+
+    // Lifestyle
+    lifestylePrivileges: [],
+    newPrivilege: { name: '', description: '', point_cost: 1 },
+    editingPrivilegeId: null,
+    privilegeEdit: { name: '', description: '', point_cost: 1 },
+
+    async init() {
+      // Determine current user id
+      try {
+        const r = await fetch('/api/profile');
+        if (r.ok) {
+          const d = await r.json();
+          if (!d.is_admin) { window.location = '/'; return; }
+        }
+      } catch {}
+      await this.loadOverview();
+    },
+
+    // ── helpers ──────────────────────────────────────────────────
+
+    flash(msg, type = 'success') {
+      this.flashMsg = msg;
+      this.flashType = type;
+      setTimeout(() => { this.flashMsg = ''; }, 3500);
+    },
+
+    xpPct(u) {
+      if (!u.next_level_xp) return 100;
+      // Approximate — we don't have current-level threshold in overview
+      return Math.min(100, Math.round((u.xp / u.next_level_xp) * 100));
+    },
+
+    fmtDate(iso) {
+      try {
+        return new Date(iso).toLocaleDateString(undefined, {
+          month: 'short', day: 'numeric', year: 'numeric'
+        });
+      } catch { return iso; }
+    },
+
+    // ── Overview ─────────────────────────────────────────────────
+
+    async loadOverview() {
+      try {
+        const r = await fetch('/api/admin/overview');
+        if (!r.ok) { this.flash('Failed to load overview', 'error'); return; }
+        const d = await r.json();
+        this.overviewUsers = d.users || [];
+      } catch (e) {
+        this.flash('Network error', 'error');
+      }
+    },
+
+    // ── Users ─────────────────────────────────────────────────────
+
+    async loadUsers() {
+      try {
+        const r = await fetch('/api/admin/users');
+        if (!r.ok) return;
+        const d = await r.json();
+        this.userList = d.users || [];
+        // Store admin id to prevent self-delete
+        try {
+          const pr = await fetch('/api/profile');
+          if (pr.ok) {
+            const pd = await pr.json();
+            const me = this.userList.find(u => u.username === pd.username);
+            if (me) this.currentAdminId = me.id;
+          }
+        } catch {}
+      } catch {}
+    },
+
+    toggleUser(id) {
+      this.openUserId = this.openUserId === id ? null : id;
+    },
+
+    async createUser() {
+      if (!this.newUser.username.trim()) return;
+      const body = {
+        username: this.newUser.username.trim(),
+        email: this.newUser.email || '',
+        allowance: parseFloat(this.newUser.allowance) || 0,
+        is_admin: this.newUser.is_admin,
+      };
+      try {
+        const r = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Create failed', 'error'); return; }
+        this.flash(`Created ${d.username}`);
+        this.newUser = { username: '', email: '', allowance: '', is_admin: false };
+        await this.loadUsers();
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    async saveUser(u) {
+      try {
+        const r = await fetch(`/api/admin/users/${u.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: u.username,
+            email: u.email,
+            allowance: u.allowance,
+            is_admin: u.is_admin,
+          }),
+        });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Save failed', 'error'); return; }
+        this.flash(`Saved ${d.username}`);
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    async deleteUser(u) {
+      if (!window.confirm(`Delete ${u.username}? This cannot be undone.`)) return;
+      try {
+        const r = await fetch(`/api/admin/users/${u.id}`, { method: 'DELETE' });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Delete failed', 'error'); return; }
+        this.flash(`Deleted ${u.username}`);
+        this.userList = this.userList.filter(x => x.id !== u.id);
+        this.openUserId = null;
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    // ── Config ────────────────────────────────────────────────────
+
+    async loadConfig() {
+      try {
+        const r = await fetch('/api/admin/config');
+        if (!r.ok) return;
+        this.config = await r.json();
+      } catch {}
+    },
+
+    async saveConfig(keys) {
+      const payload = {};
+      for (const k of keys) {
+        if (this.config[k]) payload[k] = this.config[k].value;
+      }
+      if (!Object.keys(payload).length) return;
+      try {
+        const r = await fetch('/api/admin/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Save failed', 'error'); return; }
+        this.flash('Settings saved');
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    async changePin() {
+      if (!this.newPin.trim()) return;
+      try {
+        const r = await fetch('/api/admin/config/pin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_pin: this.newPin }),
+        });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'PIN update failed', 'error'); return; }
+        this.newPin = '';
+        this.flash('PIN updated');
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    async sendDigest() {
+      this.digestLoading = true;
+      this.digestResult = '';
+      try {
+        const r = await fetch('/api/admin/digest/send', { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Failed', 'error'); return; }
+        this.digestResult = d.count > 0
+          ? `Sent to: ${d.sent_to.join(', ')}`
+          : 'Dry-run (no admin emails configured)';
+        this.flash('Digest triggered');
+      } catch { this.flash('Network error', 'error'); }
+      finally { this.digestLoading = false; }
+    },
+
+    // ── IPs ───────────────────────────────────────────────────────
+
+    async loadIPs() {
+      try {
+        const r = await fetch('/api/admin/trusted-ips');
+        if (!r.ok) return;
+        const d = await r.json();
+        this.ipList = d.trusted_ips || [];
+      } catch {}
+    },
+
+    async revokeIP(ip) {
+      if (!window.confirm(`Revoke trust for ${ip.ip_address}?`)) return;
+      try {
+        const r = await fetch(`/api/admin/trusted-ips/${ip.id}`, { method: 'DELETE' });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Failed', 'error'); return; }
+        this.ipList = this.ipList.filter(x => x.id !== ip.id);
+        this.flash(`Revoked ${ip.ip_address}`);
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    // ── Lifestyle ─────────────────────────────────────────────────
+
+    async loadLifestylePrivileges() {
+      try {
+        const r = await fetch('/api/admin/lifestyle/privileges');
+        if (!r.ok) return;
+        const d = await r.json();
+        this.lifestylePrivileges = d.privileges || [];
+      } catch {}
+    },
+
+    async createPrivilege() {
+      if (!this.newPrivilege.name.trim()) return;
+      try {
+        const r = await fetch('/api/admin/lifestyle/privileges', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: this.newPrivilege.name.trim(),
+            description: this.newPrivilege.description.trim(),
+            point_cost: this.newPrivilege.point_cost || 1,
+          }),
+        });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Create failed', 'error'); return; }
+        this.flash(`Created "${d.name}"`);
+        this.newPrivilege = { name: '', description: '', point_cost: 1 };
+        await this.loadLifestylePrivileges();
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    togglePrivilegeEdit(p) {
+      if (this.editingPrivilegeId === p.id) {
+        this.editingPrivilegeId = null;
+      } else {
+        this.editingPrivilegeId = p.id;
+        this.privilegeEdit = {
+          name: p.name,
+          description: p.description || '',
+          point_cost: p.point_cost,
+        };
+      }
+    },
+
+    async savePrivilegeEdit(id) {
+      try {
+        const r = await fetch(`/api/admin/lifestyle/privileges/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.privilegeEdit),
+        });
+        const d = await r.json();
+        if (!r.ok) { this.flash(d.error || 'Save failed', 'error'); return; }
+        this.flash('Saved');
+        this.editingPrivilegeId = null;
+        await this.loadLifestylePrivileges();
+      } catch { this.flash('Network error', 'error'); }
+    },
+
+    async togglePrivilegeActive(p) {
+      try {
+        const r = await fetch(`/api/admin/lifestyle/privileges/${p.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: !p.active }),
+        });
+        if (!r.ok) { this.flash('Update failed', 'error'); return; }
+        await this.loadLifestylePrivileges();
+      } catch { this.flash('Network error', 'error'); }
+    },
+  }));
+});
+</script>
+{% endblock %}

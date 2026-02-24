@@ -72,9 +72,10 @@ def _grant_mission_reward(assignment):
 
     db.session.commit()
 
-    # Grant mission completion XP
+    # Grant mission completion XP (use mission.reward_xp, default 500)
     from app.services.xp import grant_xp
-    grant_xp(user.id, 500, "mission_complete")
+    xp_amount = mission.reward_xp if mission.reward_xp is not None else 500
+    grant_xp(user.id, xp_amount, "mission_complete")
 
 
 # ── page routes ──────────────────────────────────────────────────────
@@ -402,4 +403,117 @@ def admin_reject_mission(assignment_id):
     return jsonify({
         "rejected": True,
         "assignment": assignment.to_dict(),
+    })
+
+
+@missions_bp.route("/api/admin/missions/<int:mission_id>", methods=["PUT"])
+def admin_edit_mission(mission_id):
+    """Edit mission reward fields (reward_xp, reward_description, gem_type, gem_size)."""
+    user_id, user = _require_admin()
+    if not user:
+        return jsonify({"error": "Admin access required"}), 403
+
+    mission = db.session.get(Mission, mission_id)
+    if not mission:
+        return jsonify({"error": "Mission not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+
+    if "reward_cash" in data:
+        try:
+            cash = float(data["reward_cash"])
+            if cash < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"error": "reward_cash must be a non-negative number"}), 400
+        mission.reward_cash = round(cash, 2)
+
+    if "reward_xp" in data:
+        try:
+            xp = int(data["reward_xp"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "reward_xp must be an integer"}), 400
+        mission.reward_xp = xp
+
+    if "reward_description" in data:
+        mission.reward_description = (data["reward_description"] or "").strip() or None
+
+    if "gem_type" in data:
+        gt = (data["gem_type"] or "").strip().lower() or None
+        if gt and gt not in Mission.VALID_GEM_TYPES:
+            return jsonify({
+                "error": f"Invalid gem_type. Must be one of: {', '.join(sorted(Mission.VALID_GEM_TYPES))}"
+            }), 400
+        mission.gem_type = gt
+
+    if "gem_size" in data:
+        gs = (data["gem_size"] or "").strip().lower() or None
+        if gs and gs not in Mission.VALID_GEM_SIZES:
+            return jsonify({
+                "error": f"Invalid gem_size. Must be one of: {', '.join(sorted(Mission.VALID_GEM_SIZES))}"
+            }), 400
+        mission.gem_size = gs
+
+    db.session.commit()
+    return jsonify(mission.to_dict())
+
+
+@missions_bp.route("/api/admin/missions/<int:assignment_id>/undo", methods=["POST"])
+def admin_undo_mission(assignment_id):
+    """Undo a completed mission — reverts XP, cash, resets assignment state."""
+    user_id, user = _require_admin()
+    if not user:
+        return jsonify({"error": "Admin access required"}), 403
+
+    assignment = db.session.get(MissionAssignment, assignment_id)
+    if not assignment:
+        return jsonify({"error": "Assignment not found"}), 404
+
+    if assignment.state != MissionAssignment.STATE_COMPLETED:
+        return jsonify({"error": "Assignment is not completed — cannot undo"}), 400
+
+    mission = assignment.mission
+    target_user = assignment.user
+    xp_to_deduct = mission.reward_xp if mission.reward_xp is not None else 500
+
+    # Deduct XP (allow negative)
+    target_user.xp = (target_user.xp or 0) - xp_to_deduct
+
+    # Recalculate level based on new XP
+    from app.services.xp import get_level_info
+    level_thresholds = [0, 100, 250, 500, 850, 1300, 1900, 2700, 3700, 5000]
+    new_xp = max(0, target_user.xp)  # cap at 0 for level calculation
+    new_level = 1
+    for lvl, threshold in enumerate(level_thresholds, start=1):
+        if new_xp >= threshold:
+            new_level = lvl
+    target_user.level = new_level
+
+    # Deduct cash reward (allow negative balance)
+    if mission.reward_cash > 0:
+        account = BankAccount.query.filter_by(user_id=target_user.id).first()
+        if account:
+            account.cash_balance -= mission.reward_cash
+
+            neg_txn = Transaction(
+                user_id=target_user.id,
+                type=Transaction.TYPE_MISSION_REWARD,
+                amount=-mission.reward_cash,
+                balance_after=round(account.cash_balance, 2),
+                description=f"Undo mission reward: {mission.title}",
+            )
+            db.session.add(neg_txn)
+
+    # Reset assignment state
+    assignment.state = MissionAssignment.STATE_ASSIGNED
+    assignment.completed_at = None
+    assignment.current_level = 0
+
+    db.session.commit()
+
+    return jsonify({
+        "undone": True,
+        "assignment": assignment.to_dict(),
+        "xp_deducted": xp_to_deduct,
+        "cash_deducted": round(mission.reward_cash, 2),
     })

@@ -4,7 +4,6 @@ Uses a service account to read/write events. Gracefully degrades
 if credentials are not configured — all methods return empty results
 or no-ops instead of raising.
 """
-import json
 import logging
 import time
 from datetime import date, datetime, timedelta
@@ -12,6 +11,21 @@ from datetime import date, datetime, timedelta
 from flask import current_app
 
 log = logging.getLogger(__name__)
+
+# Google Calendar colorId → hex mapping
+GOOGLE_COLOR_MAP = {
+    "1":  "#a4bdfc",  # lavender
+    "2":  "#7ae7bf",  # sage
+    "3":  "#dbadff",  # grape
+    "4":  "#ff887c",  # flamingo
+    "5":  "#fbd75b",  # banana
+    "6":  "#ffb878",  # tangerine
+    "7":  "#46d6db",  # peacock
+    "8":  "#e1e1e1",  # graphite
+    "9":  "#5484ed",  # blueberry
+    "10": "#51b749",  # basil
+    "11": "#dc2127",  # tomato
+}
 
 # --------------- in-memory cache ---------------
 _cache = {}
@@ -114,6 +128,7 @@ def get_todays_events(target_date: date = None):
         for item in result.get("items", []):
             start = item.get("start", {})
             end = item.get("end", {})
+            color_id = item.get("colorId", "")
             events.append(
                 {
                     "title": item.get("summary", "(No title)"),
@@ -121,6 +136,8 @@ def get_todays_events(target_date: date = None):
                     "end_time": end.get("dateTime", end.get("date", "")),
                     "description": item.get("description", ""),
                     "google_event_id": item.get("id", ""),
+                    "colorId": color_id,
+                    "color_hex": GOOGLE_COLOR_MAP.get(color_id, "#5484ed"),
                 }
             )
 
@@ -129,6 +146,67 @@ def get_todays_events(target_date: date = None):
 
     except Exception:
         log.exception("Failed to fetch Google Calendar events")
+        return []
+
+
+def get_week_events(start_date: date, end_date: date):
+    """Fetch events for a date range from Google Calendar.
+
+    Returns a list of dicts: {title, start_time, end_time, description,
+    google_event_id, colorId, color_hex}
+    Returns empty list if credentials not configured or on error.
+    """
+    calendar_id = _get_calendar_id()
+    if not calendar_id:
+        return []
+
+    key = f"{calendar_id}:week:{start_date.isoformat()}"
+    cached = _get_cached(key)
+    if cached is not None:
+        return cached
+
+    service = _build_service()
+    if service is None:
+        return []
+
+    try:
+        time_min = datetime.combine(start_date, datetime.min.time()).isoformat() + "Z"
+        time_max = datetime.combine(end_date + timedelta(days=1), datetime.min.time()).isoformat() + "Z"
+
+        result = (
+            service.events()
+            .list(
+                calendarId=calendar_id,
+                timeMin=time_min,
+                timeMax=time_max,
+                singleEvents=True,
+                orderBy="startTime",
+            )
+            .execute()
+        )
+
+        events = []
+        for item in result.get("items", []):
+            start = item.get("start", {})
+            end = item.get("end", {})
+            color_id = item.get("colorId", "")
+            events.append(
+                {
+                    "title": item.get("summary", "(No title)"),
+                    "start_time": start.get("dateTime", start.get("date", "")),
+                    "end_time": end.get("dateTime", end.get("date", "")),
+                    "description": item.get("description", ""),
+                    "google_event_id": item.get("id", ""),
+                    "colorId": color_id,
+                    "color_hex": GOOGLE_COLOR_MAP.get(color_id, "#5484ed"),
+                }
+            )
+
+        _set_cached(key, events)
+        return events
+
+    except Exception:
+        log.exception("Failed to fetch Google Calendar week events")
         return []
 
 

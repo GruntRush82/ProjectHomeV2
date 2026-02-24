@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.4.7">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2.5.4">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     {% if current_user and current_user.level >= 8 %}
@@ -39,6 +39,10 @@
     <!-- Bottom nav bar -->
     {% if current_user %}
     <nav class="bottom-nav">
+        <a href="/today" class="nav-item {% if active_nav == 'today' %}active{% endif %}">
+            <span class="nav-icon">&#9728;&#65039;</span>
+            Today
+        </a>
         <a href="/calendar" class="nav-item {% if active_nav == 'calendar' %}active{% endif %}">
             <span class="nav-icon">&#128197;</span>
             Calendar
@@ -194,6 +198,7 @@
                 setInterval(() => this._syncNavTicker(), 30000);
                 this._checkMissionNotifications();
                 this._checkAchievementNotifications();
+                window.addEventListener('bank:refresh-ticker', () => this._startNavTicker());
                 {% endif %}
             },
 

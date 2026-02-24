@@ -797,7 +797,7 @@ form button[type="submit"]:hover {
 
 .user-grid {
   display: grid;
-  grid-template-columns: repeat(5, 140px);
+  grid-template-columns: repeat(auto-fit, 140px);
   gap: 24px;
   justify-content: center;
   max-width: 900px;
@@ -2321,6 +2321,36 @@ form button[type="submit"]:hover {
 .assign-message.success { color: #34d399; }
 .assign-message.error { color: #f87171; }
 
+/* Mission catalog reward editor */
+.mission-catalog-list { display: flex; flex-direction: column; gap: 12px; }
+.mission-catalog-card {
+  background: var(--bg-card); border-radius: 12px; padding: 14px 16px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+.mission-catalog-header {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.mission-catalog-title { flex: 1; display: flex; align-items: center; gap: 8px; }
+.mission-type-badge {
+  font-size: 0.7rem; padding: 2px 8px; border-radius: 20px;
+  background: rgba(255,255,255,0.08); color: var(--text-muted); text-transform: capitalize;
+}
+.mission-catalog-summary { display: flex; gap: 6px; align-items: center; }
+.mission-reward-edit-form {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.reward-edit-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reward-edit-label { font-size: 0.82rem; color: var(--text-muted); min-width: 140px; }
+.reward-xp-input { max-width: 120px; }
+.reward-edit-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.required-star { color: #f87171; }
+
+/* Modal title/body helpers */
+.modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+.modal-body { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 18px; }
+
 .approval-card {
   display: flex; justify-content: space-between; align-items: center;
   background: var(--bg-card); border-radius: 10px; padding: 12px 16px;
@@ -2337,6 +2367,52 @@ form button[type="submit"]:hover {
 .assignment-user { font-weight: 600; min-width: 100px; }
 .assignment-mission { color: var(--text-muted); flex: 1; }
 .assignment-level { font-weight: 600; color: var(--accent); }
+
+/* -- mission reward pills -- */
+.reward-cash-pill {
+  display: inline-block;
+  font-size: 0.75rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  background: rgba(52,211,153,0.15); color: #34d399;
+  border: 1px solid rgba(52,211,153,0.3);
+}
+.reward-xp-pill {
+  display: inline-block;
+  font-size: 0.75rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  background: rgba(96,165,250,0.15); color: #60a5fa;
+  border: 1px solid rgba(96,165,250,0.3);
+}
+.reward-gem-pill {
+  display: inline-block;
+  font-size: 0.75rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  background: rgba(168,85,247,0.15); color: #c084fc;
+  border: 1px solid rgba(168,85,247,0.3);
+}
+
+/* -- lifestyle admin -- */
+.lifestyle-new-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.lifestyle-privilege-list { display: flex; flex-direction: column; gap: 8px; }
+.lifestyle-privilege-row {
+  background: var(--bg-card); border-radius: 10px; padding: 12px 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+.lifestyle-privilege-row.inactive { opacity: 0.5; }
+.lifestyle-privilege-info { flex: 1; min-width: 160px; }
+.lifestyle-privilege-name { font-weight: 600; display: block; }
+.lifestyle-privilege-desc { font-size: 0.8rem; color: var(--text-muted); }
+.lifestyle-privilege-cost { }
+.point-badge {
+  font-size: 0.78rem; padding: 3px 9px; border-radius: 20px;
+  background: rgba(139,92,246,0.15); color: #a78bfa; font-weight: 600;
+}
+.lifestyle-privilege-actions { display: flex; gap: 6px; }
+.lifestyle-inline-edit {
+  width: 100%; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05);
+}
 
 /* -- mission notification modal -- */
 .mission-notification-overlay {
@@ -3087,4 +3163,1276 @@ body[data-fire-mode="true"] .nav-level-badge {
 @keyframes fire-pulse {
   0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,102,0,0.3), 0 0 12px rgba(255,102,0,0.1); }
   50% { box-shadow: inset 0 0 0 1px rgba(255,102,0,0.5), 0 0 24px rgba(255,102,0,0.2); }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Admin Dashboard — v2.4.8
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Admin Panel button on Profile page ────────────────────────── */
+.admin-entry {
+  padding: 4px 0;
+}
+.btn-admin-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  width: 100%;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 4px 16px rgba(249,115,22,0.35);
+  transition: opacity 0.2s, box-shadow 0.2s;
+}
+.btn-admin-panel:hover { opacity: 0.9; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), 0 6px 24px rgba(249,115,22,0.5); }
+
+/* ── Admin page layout ──────────────────────────────────────────── */
+.admin-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 16px 100px;
+}
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.admin-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.btn-missions-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--accent);
+  transition: background 0.2s;
+}
+.btn-missions-link:hover { background: rgba(0,212,255,0.08); }
+
+/* ── Tab bar ────────────────────────────────────────────────────── */
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 4px;
+  overflow-x: auto;
+}
+.admin-tab {
+  flex: 1;
+  min-width: 80px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.admin-tab.active {
+  background: var(--bg-card-hi);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(0,212,255,0.2);
+}
+
+/* ── Flash ──────────────────────────────────────────────────────── */
+.admin-flash {
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.admin-flash.success { background: rgba(0,212,100,0.12); color: #00d46a; box-shadow: inset 0 0 0 1px rgba(0,212,100,0.25); }
+.admin-flash.error   { background: rgba(255,77,109,0.12); color: var(--danger); box-shadow: inset 0 0 0 1px rgba(255,77,109,0.25); }
+
+.admin-tab-content { animation: fadeIn 0.2s ease; }
+
+/* ── Overview grid ──────────────────────────────────────────────── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.overview-card {
+  padding: 16px;
+  border-radius: 14px;
+}
+.overview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.overview-icon { font-size: 2rem; line-height: 1; }
+.overview-name-block { flex: 1; min-width: 0; }
+.overview-username { font-size: 1rem; font-weight: 700; color: var(--text); }
+.overview-level-badge { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.level-pill {
+  font-size: 0.7rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 6px; background: rgba(0,212,255,0.15); color: var(--accent);
+}
+.level-name-text { font-size: 0.72rem; color: var(--text-dim); }
+.fire-badge-mini { font-size: 0.95rem; }
+.admin-crown { font-size: 1.1rem; }
+.overview-xp-bar {
+  height: 4px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden;
+  margin-bottom: 3px;
+}
+.overview-xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 4px; }
+.overview-xp-label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 10px; }
+.overview-bank-row { display: flex; gap: 8px; }
+.overview-stat { flex: 1; text-align: center; }
+.overview-stat-val { display: block; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+.overview-stat-lbl { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── Users tab ──────────────────────────────────────────────────── */
+.admin-new-user { padding: 16px; border-radius: 14px; margin-bottom: 16px; }
+.admin-new-user-form {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px;
+}
+.admin-input {
+  background: rgba(255,255,255,0.05);
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+  border: none; border-radius: 8px;
+  color: var(--text); font-size: 0.9rem;
+  padding: 9px 12px;
+  outline: none; transition: box-shadow 0.2s;
+}
+.admin-input:focus { box-shadow: inset 0 0 0 1px var(--accent); }
+.admin-check-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; color: var(--text-dim); cursor: pointer;
+}
+
+.user-accordion { display: flex; flex-direction: column; gap: 8px; }
+.user-accordion-item { border-radius: 14px; overflow: hidden; }
+.user-accordion-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; cursor: pointer;
+  transition: background 0.15s;
+}
+.user-accordion-header:hover { background: rgba(255,255,255,0.03); }
+.user-accordion-name { flex: 1; font-weight: 600; font-size: 0.95rem; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.admin-crown-sm { font-size: 0.85rem; }
+.user-accordion-meta { display: flex; gap: 8px; align-items: center; }
+.level-pill-sm {
+  font-size: 0.68rem; font-weight: 700; padding: 2px 6px;
+  border-radius: 5px; background: rgba(0,212,255,0.1); color: var(--accent);
+}
+.allowance-chip {
+  font-size: 0.75rem; color: var(--text-dim);
+  background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 5px;
+}
+.accordion-chevron {
+  font-size: 1.3rem; color: var(--text-muted); transition: transform 0.2s;
+  display: inline-block;
+}
+.accordion-chevron.open { transform: rotate(90deg); }
+
+.user-accordion-body { padding: 0 16px 16px; border-top: 1px solid var(--glass-border); margin-top: -1px; }
+.user-edit-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;
+}
+.user-edit-field { display: flex; flex-direction: column; gap: 5px; }
+.user-edit-field .admin-input { width: 100%; box-sizing: border-box; }
+.user-edit-check { justify-content: flex-end; }
+.edit-label { font-size: 0.72rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.user-edit-actions { display: flex; gap: 10px; margin-top: 14px; }
+
+/* ── Settings tab ───────────────────────────────────────────────── */
+.settings-card { padding: 16px; border-radius: 14px; margin-bottom: 16px; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+.settings-field { display: flex; flex-direction: column; gap: 5px; }
+.settings-input-row { display: flex; align-items: center; gap: 8px; }
+.settings-input { width: 100px; }
+.settings-unit { font-size: 0.8rem; color: var(--text-dim); font-weight: 600; }
+.settings-save { margin-top: 4px; }
+.settings-hint { font-size: 0.82rem; color: var(--text-dim); margin: 8px 0; }
+
+.pin-change-section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--glass-border); }
+.pin-change-title { font-size: 0.9rem; font-weight: 700; color: var(--text-dim); margin-bottom: 10px; }
+
+/* ── Trusted IPs tab ────────────────────────────────────────────── */
+.ip-table-wrap { border-radius: 14px; padding: 16px; overflow-x: auto; }
+.ip-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.ip-table th {
+  text-align: left; padding: 8px 12px;
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-dim); border-bottom: 1px solid var(--glass-border);
+}
+.ip-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ip-address-cell { font-family: monospace; color: var(--accent); }
+.ip-date-cell { color: var(--text-dim); font-size: 0.82rem; }
+
+/* ── Savings Goal card (left panel of overview row) ─────────────── */
+.bank-goal-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Invite (no goal set) */
+.bank-goal-invite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 20px 8px;
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.75;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.bank-goal-invite:hover { opacity: 1; transform: scale(1.02); }
+.bank-goal-invite-icon { font-size: 2.2rem; margin-bottom: 4px; }
+.bank-goal-invite-text {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent);
+}
+.bank-goal-invite-sub { font-size: 0.78rem; color: var(--text-dim); }
+
+/* Inline goal form */
+.bank-goal-form-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bank-goal-form-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.form-input-sm {
+  font-size: 0.88rem;
+  padding: 8px 10px;
+}
+.bank-goal-form-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+/* Goal in-progress state */
+.bank-goal-progress-state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bank-goal-card-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bank-goal-track-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bank-goal-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.bank-goal-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--accent), var(--lime));
+  transition: width 0.6s ease;
+}
+.bank-goal-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 32px;
+  text-align: right;
+}
+.bank-goal-amounts {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 0.85rem;
+}
+.bank-goal-current {
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--accent), var(--lime));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.bank-goal-sep { color: var(--text-dim); }
+.bank-goal-target { color: var(--text-dim); font-weight: 600; }
+.bank-goal-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.btn-danger-ghost { color: rgba(248,113,113,0.7) !important; }
+.btn-danger-ghost:hover { color: #f87171 !important; background: rgba(248,113,113,0.08) !important; }
+
+/* Goal COMPLETE celebration state */
+.bank-goal-complete-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 8px 4px;
+  animation: goalGlow 2s ease-in-out infinite alternate;
+}
+@keyframes goalGlow {
+  from { box-shadow: inset 0 0 0 1px var(--glass-border); }
+  to   { box-shadow: inset 0 0 0 1px rgba(250,204,21,0.5), 0 0 24px rgba(250,204,21,0.15); }
+}
+.bank-goal-trophy {
+  font-size: 2.8rem;
+  animation: trophyBounce 0.8s ease infinite alternate;
+}
+@keyframes trophyBounce {
+  from { transform: translateY(0) scale(1); }
+  to   { transform: translateY(-5px) scale(1.08); }
+}
+.bank-goal-complete-title {
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #facc15, #fb923c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.bank-goal-complete-name {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.bank-goal-complete-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  margin: 2px 0;
+}
+.bank-goal-complete-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #facc15, #fb923c, #facc15);
+  background-size: 200% 100%;
+  animation: shimmerBar 1.5s linear infinite;
+}
+@keyframes shimmerBar {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.bank-goal-clear-btn { margin-top: 4px; }
+
+/* ── Bank hero row (cash out + lifestyle side by side) ──────────── */
+.bank-hero-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 520px) {
+  .bank-hero-row { grid-template-columns: 1fr; }
+}
+
+/* Override default cashout-section margin when inside hero row */
+.bank-hero-row .bank-cashout-section {
+  margin-bottom: 0;
+}
+
+/* Lifestyle hero panel */
+.bank-lifestyle-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 20px;
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--blur));
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 8px 32px rgba(0,0,0,0.2);
+  text-align: center;
+}
+.bank-lifestyle-hero-label {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.bank-lifestyle-hero-points {
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.btn-lifestyle-rewards {
+  margin-top: 4px;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(168,85,247,0.4);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-lifestyle-rewards:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-lifestyle-rewards:active { transform: translateY(0); }
+
+/* Compact allowance note */
+.bank-allowance-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+.allowance-note-icon { font-size: 1rem; flex-shrink: 0; }
+.allowance-note-text strong { color: var(--text); }
+.allowance-history-btn { margin-left: auto; flex-shrink: 0; }
+.bank-allowance-history-inline {
+  width: 100%;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bank-allowance-history-inline .ledger-row {
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+}
+
+/* ── Lifestyle Rewards modal ────────────────────────────────────── */
+.modal-card-wide { max-width: 500px; width: 92vw; }
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.modal-header-row .modal-title { margin: 0; font-size: 1.15rem; }
+.lifestyle-modal-balance {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.lifestyle-modal-pts {
+  font-size: 1.8rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.lifestyle-modal-pts-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.lifestyle-rewards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.lifestyle-reward-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+  transition: box-shadow 0.15s;
+}
+.lifestyle-reward-card.reward-affordable {
+  box-shadow: inset 0 0 0 1px rgba(168,85,247,0.4);
+  background: rgba(168,85,247,0.06);
+}
+.reward-info { flex: 1; min-width: 0; }
+.reward-name { font-weight: 600; font-size: 0.92rem; color: var(--text); }
+.reward-desc { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+.reward-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.reward-cost {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #a855f7;
+  white-space: nowrap;
+}
+.lifestyle-pending-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--glass-border);
+}
+.lifestyle-pending-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.lifestyle-pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.lifestyle-pending-row:last-child { border-bottom: none; }
+.redemption-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.redemption-badge.pending {
+  background: rgba(251,191,36,0.15);
+  color: #fbbf24;
+}
+
+/* ── Today page — Pending Rewards ────────────────────────────────── */
+.today-rewards-section {
+  margin: 0 0 16px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(168,85,247,0.12), rgba(236,72,153,0.10));
+  box-shadow: inset 0 0 0 1px rgba(168,85,247,0.3), 0 4px 20px rgba(168,85,247,0.1);
+  padding: 16px;
+  animation: rewardsSectionPulse 3s ease-in-out infinite alternate;
+}
+@keyframes rewardsSectionPulse {
+  from { box-shadow: inset 0 0 0 1px rgba(168,85,247,0.3), 0 4px 20px rgba(168,85,247,0.08); }
+  to   { box-shadow: inset 0 0 0 1px rgba(236,72,153,0.5), 0 4px 28px rgba(236,72,153,0.18); }
+}
+
+.today-rewards-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.today-rewards-icon { font-size: 1.4rem; }
+.today-rewards-title {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #c084fc, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+.today-rewards-count {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.today-reward-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: rgba(20, 10, 35, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(168,85,247,0.25);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.today-reward-card:last-child { margin-bottom: 0; }
+
+.today-reward-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.today-reward-emoji {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  animation: rewardSpin 4s linear infinite;
+}
+@keyframes rewardSpin {
+  0%   { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(-8deg) scale(1.1); }
+  50%  { transform: rotate(0deg) scale(1); }
+  75%  { transform: rotate(8deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.today-reward-info { min-width: 0; }
+.today-reward-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.today-reward-pts {
+  font-size: 0.75rem;
+  color: #c084fc;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.btn-got-reward {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(168,85,247,0.4);
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-got-reward:hover  { opacity: 0.9; transform: translateY(-1px); }
+.btn-got-reward:active { transform: scale(0.96); }
+
+/* ═══════════════════════════════════════════════
+   LIFESTYLE GOALS — Card Grid (Today page)
+═══════════════════════════════════════════════ */
+.lifestyle-section {
+  padding: 0 16px 16px;
+}
+.lifestyle-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-top: 4px;
+}
+.lifestyle-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lifestyle-header-icon {
+  font-size: 1.4rem;
+}
+.lifestyle-header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.lifestyle-week-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 50px;
+  background: rgba(99,102,241,0.25);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.4);
+  color: #a5b4fc;
+}
+.lifestyle-empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.lifestyle-goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+/* Individual goal card */
+.lifestyle-goal-card {
+  position: relative;
+  border-radius: 16px;
+  padding: 16px 14px 14px;
+  background: rgba(99,102,241,0.08);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: box-shadow 0.25s, background 0.25s, transform 0.15s;
+  overflow: hidden;
+}
+.lifestyle-goal-card:hover { transform: translateY(-2px); }
+
+/* On-track state: green glow */
+.lifestyle-goal-card.goal-complete {
+  background: rgba(16,185,129,0.12);
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,0.4), 0 0 18px rgba(16,185,129,0.18);
+}
+/* Today logged (but not yet on track) */
+.lifestyle-goal-card.goal-logged {
+  background: rgba(99,102,241,0.14);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.35);
+}
+
+/* Big checkmark badge */
+.goal-complete-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.5);
+  animation: goalCheck 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes goalCheck {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+}
+
+.goal-card-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.2;
+  min-height: 2.1em;
+  display: flex;
+  align-items: center;
+}
+
+/* Tally: "3 / 5" with labels */
+.goal-tally-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.goal-tally-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.goal-tally-num {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent);
+}
+.goal-tally-num.goal-tally-target {
+  color: var(--text-dim);
+  font-size: 1.3rem;
+}
+.goal-tally-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.goal-tally-divider {
+  font-size: 1.4rem;
+  color: var(--text-dim);
+  font-weight: 300;
+  margin-bottom: 10px;
+}
+
+/* Progress dots */
+.goal-dots-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+.goal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.goal-dot-filled {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.goal-complete .goal-dot-filled {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+/* Log Today button */
+.btn-log-goal {
+  margin-top: 4px;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2, #818cf8));
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(var(--accent-rgb, 99,102,241),0.35);
+  transition: opacity 0.15s, transform 0.1s;
+  width: 100%;
+}
+.btn-log-goal:hover  { opacity: 0.88; transform: translateY(-1px); }
+.btn-log-goal:active { transform: scale(0.95); }
+
+.goal-logged-today {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #818cf8;
+  text-align: center;
+  margin-top: 4px;
+}
+.goal-on-track-msg {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #10b981;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   WEEKLY CALENDAR PAGE — 7-Day Grid
+═══════════════════════════════════════════════ */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 0 12px 24px;
+  min-height: 300px;
+}
+
+/* On narrower screens, show fewer columns and scroll */
+@media (max-width: 900px) {
+  .week-grid {
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    overflow-x: auto;
+  }
+}
+@media (max-width: 600px) {
+  .week-grid {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+}
+
+.week-day-col {
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+/* Today's column gets accent border */
+.week-day-col.week-today {
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 20px rgba(var(--accent-rgb, 99,102,241),0.18);
+  background: rgba(var(--accent-rgb, 99,102,241),0.07);
+}
+
+/* Day header */
+.week-day-header {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  text-align: center;
+}
+.week-day-name {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+.week-today .week-day-name {
+  color: var(--accent);
+}
+.week-day-date {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.week-today .week-day-date {
+  color: var(--accent);
+}
+
+/* Events list inside a day */
+.week-events-list {
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.week-empty {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 12px 0;
+  opacity: 0.6;
+}
+
+/* Individual event card */
+.week-event-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 6px 7px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07);
+}
+.week-event-color {
+  width: 3px;
+  min-width: 3px;
+  height: 100%;
+  min-height: 28px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+.week-event-body {
+  min-width: 0;
+  flex: 1;
+}
+.week-event-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-word;
+}
+.week-event-time {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Week nav header */
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.week-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════
+   GEM DISPLAY — CSS-rendered gems
+═══════════════════════════════════════════════ */
+.gem-shape {
+  display: inline-block;
+  position: relative;
+  border-radius: 3px 3px 6px 6px;
+}
+/* Size variants */
+.gem-shape.gem-small  { width: 22px; height: 20px; }
+.gem-shape.gem-medium { width: 32px; height: 28px; }
+.gem-shape.gem-large  { width: 44px; height: 38px; }
+
+/* Colors by type */
+.gem-ruby     { background: linear-gradient(145deg, #ff6b6b, #c0392b, #ff4040); box-shadow: 0 0 12px rgba(255,50,50,0.6),  inset 0 2px 4px rgba(255,200,200,0.5); }
+.gem-emerald  { background: linear-gradient(145deg, #55efc4, #00b894, #27ae60); box-shadow: 0 0 12px rgba(0,200,100,0.6),  inset 0 2px 4px rgba(200,255,220,0.5); }
+.gem-diamond  { background: linear-gradient(145deg, #dfe6e9, #b2bec3, #74b9ff); box-shadow: 0 0 14px rgba(130,200,255,0.7), inset 0 2px 4px rgba(255,255,255,0.8); }
+.gem-sapphire { background: linear-gradient(145deg, #74b9ff, #0984e3, #2d3436); box-shadow: 0 0 12px rgba(50,100,255,0.6),  inset 0 2px 4px rgba(180,220,255,0.5); }
+.gem-amethyst { background: linear-gradient(145deg, #d980fa, #9b59b6, #6c3483); box-shadow: 0 0 12px rgba(180,50,255,0.55), inset 0 2px 4px rgba(230,180,255,0.5); }
+.gem-topaz    { background: linear-gradient(145deg, #ffeaa7, #f9ca24, #e17055); box-shadow: 0 0 12px rgba(250,200,30,0.6),  inset 0 2px 4px rgba(255,240,180,0.6); }
+
+/* Shine facet */
+.gem-shape::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 35%;
+  height: 35%;
+  background: rgba(255,255,255,0.55);
+  border-radius: 50% 50% 0 50%;
+  transform: rotate(-15deg);
+}
+
+/* Tiny gem icons for login cards */
+.gem-tiny {
+  display: inline-block;
+  width: 12px;
+  height: 11px;
+  border-radius: 2px 2px 4px 4px;
+  vertical-align: middle;
+  margin: 0 1px;
+  position: relative;
+}
+.gem-tiny::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 30%;
+  height: 30%;
+  background: rgba(255,255,255,0.5);
+  border-radius: 50%;
+}
+
+
+/* ═══════════════════════════════════════════════
+   GEM TROPHY CARDS — Profile page
+═══════════════════════════════════════════════ */
+.gem-trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.gem-trophy-card {
+  border-radius: 16px;
+  padding: 18px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.gem-trophy-card:hover { transform: translateY(-3px); }
+
+/* Type-specific glow colors */
+.gem-card-ruby     { box-shadow: inset 0 0 0 1px rgba(255,80,80,0.3),  0 0 18px rgba(255,50,50,0.15); }
+.gem-card-emerald  { box-shadow: inset 0 0 0 1px rgba(0,200,100,0.3),  0 0 18px rgba(0,185,100,0.15); }
+.gem-card-diamond  { box-shadow: inset 0 0 0 1px rgba(130,200,255,0.3), 0 0 18px rgba(130,200,255,0.15); }
+.gem-card-sapphire { box-shadow: inset 0 0 0 1px rgba(50,130,255,0.3),  0 0 18px rgba(50,130,255,0.15); }
+.gem-card-amethyst { box-shadow: inset 0 0 0 1px rgba(180,80,255,0.3),  0 0 18px rgba(180,80,255,0.15); }
+.gem-card-topaz    { box-shadow: inset 0 0 0 1px rgba(250,200,30,0.3),  0 0 18px rgba(250,200,30,0.15); }
+
+.gem-visual-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+}
+
+.gem-mission-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.gem-size-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--text-dim);
+}
+.gem-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.35;
+  font-style: italic;
+}
+
+/* Login card gems row */
+.user-card-gems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   PROFILE — Lifestyle Goals form & manage actions
+═══════════════════════════════════════════════ */
+.lifestyle-new-goal-form {
+  background: rgba(99,102,241,0.07);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.2);
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lifestyle-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.lifestyle-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.lifestyle-form-field-narrow {
+  flex: 0 0 140px;
+  max-width: 140px;
+}
+.lifestyle-form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+/* Goal card manage actions */
+.goal-manage-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+}
+.btn-goal-action {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-goal-action:hover  { opacity: 0.85; transform: translateY(-1px); }
+.btn-goal-action:active { transform: scale(0.95); }
+.btn-goal-edit {
+  background: rgba(99,102,241,0.2);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.4);
+  color: #a5b4fc;
+}
+.btn-goal-save {
+  background: rgba(16,185,129,0.2);
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,0.4);
+  color: #6ee7b7;
+}
+.btn-goal-remove {
+  background: rgba(239,68,68,0.12);
+  box-shadow: inset 0 0 0 1px rgba(239,68,68,0.3);
+  color: #fca5a5;
+}
+
+/* Inline edit inputs inside goal cards */
+.goal-edit-name-input {
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  text-align: center;
+  width: 100%;
+}
+.goal-edit-target-input {
+  font-size: 1.1rem;
+  padding: 2px 4px;
+  text-align: center;
+  width: 48px;
+}
+
+/* Undo log button — muted appearance to signal "already done" */
+.btn-log-undo {
+  background: rgba(99,102,241,0.15) !important;
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.3) !important;
+  color: #a5b4fc !important;
+  font-weight: 600 !important;
+  font-size: 0.72rem !important;
+  opacity: 0.85;
+}
+.btn-log-undo:hover { opacity: 1 !important; }
+
+/* Test header info block */
+.test-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.test-rules-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 50px;
+  background: rgba(99,102,241,0.18);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,0.35);
+  color: #a5b4fc;
+  white-space: nowrap;
+}
+.score-errors {
+  font-size: 0.9rem;
+  color: #fbbf24;
+  margin: 2px 0;
 }

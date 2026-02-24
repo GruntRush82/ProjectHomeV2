@@ -150,6 +150,149 @@
         </div>
     </section>
 
+    <!-- Mission Gems -->
+    <section class="profile-section" x-show="completedMissions.length > 0" x-cloak>
+        <h2 class="section-title">&#128142; Mission Gems</h2>
+        <div class="gem-trophy-grid">
+            <template x-for="(m, i) in completedMissions" :key="i">
+                <div class="gem-trophy-card" :class="'gem-card-' + (m.gem_type || 'diamond')">
+                    <!-- CSS-rendered gem -->
+                    <div class="gem-visual-wrap">
+                        <div class="gem-shape"
+                             :class="['gem-' + (m.gem_type || 'diamond'), 'gem-' + (m.gem_size || 'medium')]">
+                        </div>
+                    </div>
+                    <div class="gem-mission-title" x-text="m.mission_title"></div>
+                    <div class="gem-size-label" x-show="m.gem_size"
+                         x-text="(m.gem_size || '').charAt(0).toUpperCase() + (m.gem_size || '').slice(1) + ' ' + (m.gem_type || '')"></div>
+                    <div class="gem-desc" x-show="m.reward_description"
+                         x-text="m.reward_description"></div>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <!-- Lifestyle Goals Management -->
+    <section class="profile-section">
+        <div class="lifestyle-section-header">
+            <div class="lifestyle-header-left">
+                <span class="lifestyle-header-icon">&#127807;</span>
+                <h2 class="lifestyle-header-title">Lifestyle Goals</h2>
+            </div>
+            <button class="btn-ghost btn-sm" @click="showGoalForm = !showGoalForm"
+                    x-text="showGoalForm ? 'Cancel' : '+ New Goal'"></button>
+        </div>
+
+        <!-- New goal form -->
+        <div x-show="showGoalForm" x-cloak class="lifestyle-new-goal-form">
+            <div class="lifestyle-form-row">
+                <div class="lifestyle-form-field">
+                    <label class="lifestyle-form-label">What habit would you like to form?</label>
+                    <input type="text" x-model="newGoalName" placeholder="e.g. Read 20 minutes"
+                           class="form-input" @keydown.enter="createGoal()">
+                </div>
+                <div class="lifestyle-form-field lifestyle-form-field-narrow">
+                    <label class="lifestyle-form-label">How many times a week?</label>
+                    <input type="number" x-model.number="newGoalTarget"
+                           class="form-input" min="1" max="7" @keydown.enter="createGoal()">
+                </div>
+            </div>
+            <button class="btn-log-goal" @click="createGoal()"
+                    :disabled="!newGoalName.trim() || !newGoalTarget || newGoalTarget < 1">
+                &#10004; Add This Goal
+            </button>
+        </div>
+
+        <!-- Goals grid (same card style as Today page) -->
+        <div x-show="lifestyleGoals.length === 0 && !showGoalForm" class="lifestyle-empty">
+            No goals yet — tap "+ New Goal" to add one!
+        </div>
+
+        <div class="lifestyle-goals-grid" x-show="lifestyleGoals.length > 0">
+            <template x-for="goal in lifestyleGoals" :key="goal.id">
+                <div class="lifestyle-goal-card" :class="{'goal-complete': goal.on_track, 'goal-logged': goal.today_logged}">
+                    <div class="goal-complete-badge" x-show="goal.on_track">&#10003;</div>
+
+                    <!-- View mode -->
+                    <template x-if="editingGoalId !== goal.id">
+                        <div class="goal-card-name" x-text="goal.name"></div>
+                    </template>
+                    <!-- Edit mode: replace name with input -->
+                    <template x-if="editingGoalId === goal.id">
+                        <input type="text" x-model="editGoalName" class="form-input goal-edit-name-input"
+                               @keydown.enter="saveGoal(goal.id)">
+                    </template>
+
+                    <!-- Tally -->
+                    <div class="goal-tally-row">
+                        <div class="goal-tally-block">
+                            <div class="goal-tally-num" x-text="goal.this_week_count"></div>
+                            <div class="goal-tally-label">This week</div>
+                        </div>
+                        <div class="goal-tally-divider">/</div>
+                        <div class="goal-tally-block">
+                            <template x-if="editingGoalId !== goal.id">
+                                <div class="goal-tally-num goal-tally-target" x-text="goal.weekly_target"></div>
+                            </template>
+                            <template x-if="editingGoalId === goal.id">
+                                <input type="number" x-model.number="editGoalTarget"
+                                       class="form-input goal-edit-target-input"
+                                       min="1" max="7">
+                            </template>
+                            <div class="goal-tally-label">Goal</div>
+                        </div>
+                    </div>
+
+                    <!-- Progress dots -->
+                    <div class="goal-dots-row">
+                        <template x-for="i in goal.weekly_target" :key="i">
+                            <div class="goal-dot" :class="{'goal-dot-filled': i <= goal.this_week_count}"></div>
+                        </template>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="goal-manage-actions">
+                        <template x-if="editingGoalId !== goal.id">
+                            <button class="btn-goal-action btn-goal-edit" @click="startEditGoal(goal)">Edit</button>
+                        </template>
+                        <template x-if="editingGoalId === goal.id">
+                            <button class="btn-goal-action btn-goal-save" @click="saveGoal(goal.id)">Save</button>
+                        </template>
+                        <button class="btn-goal-action btn-goal-remove" @click="deactivateGoal(goal.id)">Remove</button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <!-- Privilege Redemptions -->
+    <section class="profile-section" x-show="allRedemptions.length > 0" x-cloak>
+        <h2 class="section-title">Redemption History</h2>
+        <template x-for="r in allRedemptions" :key="r.id">
+            <div class="lifestyle-redemption-row">
+                <div class="redemption-info">
+                    <span class="redemption-priv" x-text="r.privilege_name"></span>
+                    <span class="redemption-pts" x-text="r.points_spent + ' pts'"></span>
+                    <span class="redemption-date" x-text="formatDate(r.redeemed_at)"></span>
+                </div>
+                <div class="redemption-status">
+                    <span class="redemption-badge" :class="'status-' + r.status" x-text="r.status"></span>
+                    <button x-show="r.status === 'pending'" class="btn-ghost btn-sm btn-danger"
+                            @click="cancelRedemption(r.id)">Cancel</button>
+                </div>
+            </div>
+        </template>
+    </section>
+
+    <!-- Admin Panel entry (admin-only) -->
+    <template x-if="isAdmin">
+      <section class="profile-section">
+        <div class="admin-entry">
+          <a href="/admin" class="btn-admin-panel">&#9881; Admin Panel</a>
+        </div>
+      </section>
+    </template>
+
     <!-- Flash message -->
     <div class="bank-flash" x-show="flashMsg" x-cloak
          x-transition :class="flashType" x-text="flashMsg"></div>
@@ -173,6 +316,7 @@ document.addEventListener('alpine:init', () => {
         fireMode: false,
         achievementsUnlocked: 0,
         currentTheme: 'cyan',
+        isAdmin: false,
         // UI state
         showAllAchievements: false,
         flashMsg: '',
@@ -182,6 +326,19 @@ document.addEventListener('alpine:init', () => {
         catalog: [],
         // Icon data — list of dicts from API
         availableIcons: [],
+        // Mission gems
+        completedMissions: [],
+        // Lifestyle goals
+        lifestyleGoals: [],
+        lifestylePoints: 0,
+        showGoalForm: false,
+        newGoalName: '',
+        newGoalTarget: 7,
+        editingGoalId: null,
+        editGoalName: '',
+        editGoalTarget: 7,
+        // Redemptions
+        allRedemptions: [],
 
         // Computed: metadata for the currently selected icon
         get currentIconMeta() {
@@ -222,7 +379,10 @@ document.addEventListener('alpine:init', () => {
                 this.streakBest = data.streak_best;
                 this.fireMode = data.fire_mode;
                 this.currentTheme = data.theme_color;
+                this.isAdmin = data.is_admin || false;
                 this.availableIcons = data.available_icons || [];
+                this.completedMissions = data.completed_missions || [];
+                this.lifestylePoints = data.lifestyle_points || 0;
 
                 // Load achievements
                 this.achievementsUnlocked = data.achievements_unlocked || 0;
@@ -234,6 +394,10 @@ document.addEventListener('alpine:init', () => {
                     const catData = await catRes.json();
                     this.catalog = catData.achievements || [];
                 }
+
+                // Load lifestyle goals and redemptions
+                this.loadLifestyleGoals();
+                this.loadRedemptions();
 
                 // Initialize particles for currently selected icon if L8+
                 this.$nextTick(() => {
@@ -286,6 +450,96 @@ document.addEventListener('alpine:init', () => {
             } catch (e) {
                 this.flash('Failed to update theme', 'error');
             }
+        },
+
+        gemEmoji(gemType) {
+            const map = { ruby: '🔴', emerald: '💚', diamond: '💎', sapphire: '🔵', amethyst: '💜', topaz: '🟡' };
+            return map[gemType] || '💎';
+        },
+
+        async loadLifestyleGoals() {
+            try {
+                const res = await fetch('/api/lifestyle/goals');
+                if (!res.ok) return;
+                const data = await res.json();
+                this.lifestyleGoals = data.goals || [];
+            } catch (e) {}
+        },
+
+        async createGoal() {
+            if (!this.newGoalName.trim() || !this.newGoalTarget || this.newGoalTarget < 1) return;
+            try {
+                const res = await fetch('/api/lifestyle/goals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: this.newGoalName.trim(), weekly_target: this.newGoalTarget })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+                this.lifestyleGoals.push(data);
+                this.newGoalName = '';
+                this.newGoalTarget = 7;
+                this.showGoalForm = false;
+                this.flash('Goal added!', 'success');
+            } catch (e) { this.flash('Failed to add goal', 'error'); }
+        },
+
+        startEditGoal(goal) {
+            this.editingGoalId = goal.id;
+            this.editGoalName = goal.name;
+            this.editGoalTarget = goal.weekly_target;
+        },
+
+        async saveGoal(goalId) {
+            try {
+                const res = await fetch(`/api/lifestyle/goals/${goalId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: this.editGoalName.trim(), weekly_target: this.editGoalTarget })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+                const idx = this.lifestyleGoals.findIndex(g => g.id === goalId);
+                if (idx >= 0) this.lifestyleGoals[idx] = data;
+                this.editingGoalId = null;
+                this.flash('Goal updated!', 'success');
+            } catch (e) { this.flash('Failed to update goal', 'error'); }
+        },
+
+        async deactivateGoal(goalId) {
+            try {
+                const res = await fetch(`/api/lifestyle/goals/${goalId}`, { method: 'DELETE' });
+                if (!res.ok) return;
+                this.lifestyleGoals = this.lifestyleGoals.filter(g => g.id !== goalId);
+                this.flash('Goal removed', 'success');
+            } catch (e) { this.flash('Failed to remove goal', 'error'); }
+        },
+
+        async loadRedemptions() {
+            try {
+                const res = await fetch('/api/lifestyle/redemptions');
+                if (!res.ok) return;
+                const data = await res.json();
+                this.allRedemptions = data.redemptions || [];
+            } catch (e) {}
+        },
+
+        async cancelRedemption(redemptionId) {
+            try {
+                const res = await fetch(`/api/lifestyle/redemptions/${redemptionId}/cancel`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) { this.flash(data.error, 'error'); return; }
+                const idx = this.allRedemptions.findIndex(r => r.id === redemptionId);
+                if (idx >= 0) this.allRedemptions[idx].status = 'cancelled';
+                this.lifestylePoints += data.points_refunded || 0;
+                this.flash('Redemption cancelled — points refunded', 'success');
+            } catch (e) { this.flash('Failed to cancel redemption', 'error'); }
+        },
+
+        formatDate(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         },
 
         flash(msg, type = 'success') {

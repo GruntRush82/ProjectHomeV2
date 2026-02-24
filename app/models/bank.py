@@ -169,6 +169,8 @@ class SavingsGoal(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     name = db.Column(db.String(200), nullable=False)
     target_amount = db.Column(db.Float, nullable=False)
+    # Baseline snapshot taken at goal creation: goal_progress = current - baseline
+    progress_baseline = db.Column(db.Float, nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
 
@@ -182,6 +184,7 @@ class SavingsGoal(db.Model):
             "user_id": self.user_id,
             "name": self.name,
             "target_amount": round(self.target_amount, 2),
+            "progress_baseline": round(self.progress_baseline, 2),
             "created_at": self.created_at.isoformat(),
             "completed_at": (
                 self.completed_at.isoformat() if self.completed_at else None

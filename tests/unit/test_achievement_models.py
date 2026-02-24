@@ -124,22 +124,26 @@ class TestSeedAchievements:
 
     def test_seed_creates_all_achievements(self, app, db):
         count = seed_achievements()
-        assert count == 14
-        assert Achievement.query.count() == 14
+        assert count == 17
+        assert Achievement.query.count() == 17
 
     def test_seed_is_idempotent(self, app, db):
         seed_achievements()
         count2 = seed_achievements()
         assert count2 == 0
-        assert Achievement.query.count() == 14
+        assert Achievement.query.count() == 17
 
     def test_seed_has_correct_tiers(self, app, db):
         seed_achievements()
         bronze = Achievement.query.filter_by(tier="bronze").count()
         silver = Achievement.query.filter_by(tier="silver").count()
         gold = Achievement.query.filter_by(tier="gold").count()
-        assert bronze == 4  # First Steps, Streak Starter, Penny Saver, First Cashout
-        assert silver == 6  # Week Warrior, On Fire, Savings Pro, Big Spender, Interest Earner, Goal Getter
+        # bronze: First Steps, Streak Starter, Penny Saver, First Cashout,
+        #         Privilege Unlocked, Calendar Explorer
+        assert bronze == 6
+        # silver: Week Warrior, On Fire, Savings Pro, Big Spender,
+        #         Interest Earner, Goal Getter, Lifestyle Achiever
+        assert silver == 7
         assert gold == 4    # Chore Machine, Unstoppable, Legendary, Immortal
 
 

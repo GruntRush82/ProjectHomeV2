@@ -184,9 +184,25 @@ def pin_submit():
 def login_page():
     """User selection screen."""
     if session.get("current_user_id"):
-        return redirect(url_for("calendar.calendar_page"))
+        return redirect(url_for("calendar.today_page"))
     users = User.query.order_by(User.id).all()
-    return render_template("login.html", users=users)
+
+    # Build gem map for completed missions: {user_id: [gem_type, ...]}
+    user_gems = {}
+    try:
+        from app.models.mission import MissionAssignment
+        completed = MissionAssignment.query.filter_by(
+            state=MissionAssignment.STATE_COMPLETED
+        ).all()
+        for assignment in completed:
+            if assignment.mission and assignment.mission.gem_type:
+                user_gems.setdefault(assignment.user_id, []).append(
+                    assignment.mission.gem_type
+                )
+    except Exception:
+        pass
+
+    return render_template("login.html", users=users, user_gems=user_gems)
 
 
 @auth_bp.route("/session", methods=["POST"])
@@ -199,7 +215,7 @@ def create_session():
     if not user:
         return redirect(url_for("auth.login_page"))
     session["current_user_id"] = user.id
-    return redirect(url_for("calendar.calendar_page"))
+    return redirect(url_for("calendar.today_page"))
 
 
 @auth_bp.route("/session/logout")

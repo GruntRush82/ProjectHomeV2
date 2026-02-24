@@ -162,6 +162,41 @@ ACHIEVEMENT_DEFINITIONS = [
         "tier": "silver",
         "display_order": 14,
     },
+    # ── Lifestyle ──
+    {
+        "name": "Lifestyle Achiever",
+        "description": "Log all your lifestyle goals for a full week",
+        "icon": "\U0001f31f",
+        "category": "lifestyle",
+        "requirement_type": "lifestyle_first_point",
+        "requirement_value": 1,
+        "xp_reward": 100,
+        "tier": "silver",
+        "display_order": 15,
+    },
+    {
+        "name": "Privilege Unlocked",
+        "description": "Redeem a privilege for the first time",
+        "icon": "\U0001f511",
+        "category": "lifestyle",
+        "requirement_type": "first_redemption",
+        "requirement_value": 1,
+        "xp_reward": 50,
+        "tier": "bronze",
+        "display_order": 16,
+    },
+    # ── Calendar ──
+    {
+        "name": "Calendar Explorer",
+        "description": "View the weekly calendar for the first time",
+        "icon": "\U0001f5d3\ufe0f",
+        "category": "calendar",
+        "requirement_type": "first_weekly_calendar",
+        "requirement_value": 1,
+        "xp_reward": 25,
+        "tier": "bronze",
+        "display_order": 17,
+    },
 ]
 
 

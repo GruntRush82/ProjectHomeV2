@@ -51,6 +51,12 @@ def check_achievements(user_id: int, trigger: str, context: dict | None = None) 
         newly_unlocked.extend(_check_interest_earner(user))
     elif trigger == "savings_goal_completed":
         newly_unlocked.extend(_check_goal_getter(user))
+    elif trigger == "lifestyle_goal_getter":
+        newly_unlocked.extend(_check_lifestyle_achiever(user))
+    elif trigger == "lifestyle_privilege_unlocked":
+        newly_unlocked.extend(_check_privilege_unlocked(user))
+    elif trigger == "calendar_explorer":
+        newly_unlocked.extend(_check_calendar_explorer(user))
 
     # Sort: gold first, then silver, then bronze
     newly_unlocked.sort(key=lambda a: _TIER_ORDER.get(a["tier"], 99))
@@ -183,4 +189,22 @@ def _check_interest_earner(user: User) -> list[dict]:
 def _check_goal_getter(user: User) -> list[dict]:
     """Goal Getter — completed a savings goal."""
     result = _unlock(user, "Goal Getter")
+    return [result] if result else []
+
+
+def _check_lifestyle_achiever(user: User) -> list[dict]:
+    """Lifestyle Achiever — earned first lifestyle point."""
+    result = _unlock(user, "Lifestyle Achiever")
+    return [result] if result else []
+
+
+def _check_privilege_unlocked(user: User) -> list[dict]:
+    """Privilege Unlocked — first privilege redemption."""
+    result = _unlock(user, "Privilege Unlocked")
+    return [result] if result else []
+
+
+def _check_calendar_explorer(user: User) -> list[dict]:
+    """Calendar Explorer — first weekly calendar view."""
+    result = _unlock(user, "Calendar Explorer")
     return [result] if result else []

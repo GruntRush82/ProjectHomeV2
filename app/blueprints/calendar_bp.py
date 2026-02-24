@@ -1,5 +1,5 @@
-"""Calendar blueprint — daily dashboard with Google Calendar + chores."""
-from datetime import date, datetime, time
+"""Calendar blueprint — today dashboard + weekly calendar view."""
+from datetime import date, datetime, time, timedelta
 
 from flask import Blueprint, jsonify, render_template, request, session
 
@@ -17,18 +17,55 @@ def _today_name():
     return date.today().strftime("%A")
 
 
-@calendar_bp.route("/calendar")
-def calendar_page():
-    """Render the daily calendar dashboard."""
+def _event_on_day(event: dict, target_date: date) -> bool:
+    """Return True if the event's start falls on target_date."""
+    start = event.get("start_time", "")
+    if not start:
+        return False
+    try:
+        return date.fromisoformat(start[:10]) == target_date
+    except (ValueError, TypeError):
+        return False
+
+
+# ── page routes ───────────────────────────────────────────────────────
+
+@calendar_bp.route("/today")
+def today_page():
+    """Render the daily Today dashboard."""
     user_id = session.get("current_user_id")
     if not user_id:
-        return render_template("calendar.html", events=[], chores=[], streak=0)
+        return render_template("today.html", active_nav="today")
 
-    return render_template(
-        "calendar.html",
-        active_nav="calendar",
-    )
+    # Fire calendar_explorer achievement on first visit
+    try:
+        from app.models.achievement import UserAchievement
+        from app.services.achievements import check_achievements
+        check_achievements(user_id, "today_page_visit")
+    except Exception:
+        pass
 
+    return render_template("today.html", active_nav="today")
+
+
+@calendar_bp.route("/calendar")
+def calendar_page():
+    """Render the weekly calendar view."""
+    user_id = session.get("current_user_id")
+    if not user_id:
+        return render_template("calendar_weekly.html", active_nav="calendar")
+
+    # Fire calendar_explorer achievement on first visit to weekly calendar
+    try:
+        from app.services.achievements import check_achievements
+        check_achievements(user_id, "calendar_explorer")
+    except Exception:
+        pass
+
+    return render_template("calendar_weekly.html", active_nav="calendar")
+
+
+# ── API routes ────────────────────────────────────────────────────────
 
 @calendar_bp.route("/api/calendar/today")
 def today_data():
@@ -76,6 +113,70 @@ def today_data():
             for c in chores
         ],
         "progress": {"total": total, "done": done},
+    })
+
+
+@calendar_bp.route("/api/calendar/week")
+def week_data():
+    """JSON endpoint: a 7-day week of calendar events, Mon–Sun."""
+    user_id = session.get("current_user_id")
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    # Parse start date, normalize to Monday
+    start_str = request.args.get("start", "")
+    try:
+        parsed = date.fromisoformat(start_str)
+        # Normalize to Monday of that week
+        week_start = parsed - timedelta(days=parsed.weekday())
+    except (ValueError, TypeError):
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())
+
+    week_end = week_start + timedelta(days=6)
+
+    # Fetch Google Calendar events for the whole week
+    google_events = google_cal.get_week_events(week_start, week_end)
+
+    today = date.today()
+    days = []
+    for i in range(7):
+        day_date = week_start + timedelta(days=i)
+
+        # Google events for this day
+        day_google_events = [e for e in google_events if _event_on_day(e, day_date)]
+
+        # Local events for this day
+        local_events_db = CalendarEvent.query.filter_by(
+            event_date=day_date
+        ).order_by(CalendarEvent.event_time.asc()).all()
+
+        # Convert local events to same structure as Google events
+        day_local_events = []
+        for e in local_events_db:
+            time_str = e.event_time.strftime("%H:%M") if e.event_time else ""
+            day_local_events.append({
+                "title": e.title,
+                "start_time": time_str,
+                "end_time": "",
+                "description": e.description or "",
+                "google_event_id": None,
+                "colorId": "",
+                "color_hex": "#46d6db",  # peacock for local events
+                "local_id": e.id,
+            })
+
+        days.append({
+            "date": day_date.isoformat(),
+            "day_name": day_date.strftime("%A"),
+            "is_today": day_date == today,
+            "events": day_google_events + day_local_events,
+        })
+
+    return jsonify({
+        "week_start": week_start.isoformat(),
+        "week_end": week_end.isoformat(),
+        "days": days,
     })
 
 

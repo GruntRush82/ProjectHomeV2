@@ -2,6 +2,9 @@
 
 This file covers the V2 codebase (branch `v2`). For deployment, SSH, and V1 production info, see `~/CLAUDE.md`.
 
+## IMPORTANT — Do Not Touch the Droplet
+**Never SSH to the droplet, push to remote, deploy, or modify anything on `68.183.192.133` unless the user explicitly asks.** All work is local only unless specifically requested.
+
 ## Quick Start
 
 ```bash
@@ -12,7 +15,7 @@ python run.py              # Starts on http://0.0.0.0:5000
 
 - **Branch:** `v2` (V1 stays live on `master`)
 - **Specs:** `specs/V2_PLAN.md` (phased plan + session handoff log), `specs/DECISIONS.md` (92 finalized decisions)
-- **Tests:** `pytest tests/` (291 tests, all passing as of Phase 5 completion)
+- **Tests:** `pytest tests/` (312 tests, all passing — v1.0 complete)
 - **DB:** SQLite at `instance/chores.db`. For a fresh DB: delete the file and run `python -c "from app import create_app; from app.extensions import db; app=create_app(); app.app_context().push(); db.create_all()"`
 - **Seed production chores:** Pull V1 DB from droplet, map user IDs, insert into V2 DB (see session handoff log in V2_PLAN.md)
 

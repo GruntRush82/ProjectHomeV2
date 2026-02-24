@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Today — Felker Family Hub{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="calendarApp" x-init="loadToday()">
+
+    <!-- Today's date header -->
+    <div class="calendar-header">
+        <div class="calendar-header-left">
+            <h1 class="page-title" x-text="dayName"></h1>
+            <div class="calendar-date" x-text="formattedDate"></div>
+        </div>
+    </div>
+
+    <div class="calendar-wrapper">
+    <!-- Streak banner -->
+    <div class="streak-banner" x-show="streak > 0" x-cloak>
+        <span class="streak-fire">&#128293;</span>
+        <span class="streak-text" x-text="streak + '-week streak'"></span>
+        <span class="streak-best" x-show="streak === streakBest" x-cloak>Personal best!</span>
+    </div>
+
+    <div class="calendar-grid">
+        <!-- Today's Chores -->
+        <section class="calendar-section">
+            <div class="section-header">
+                <h2>Today's Chores</h2>
+                <span class="progress-badge" x-text="choresDone + '/' + choresTotal"></span>
+            </div>
+
+            <div x-show="chores.length === 0" class="empty-state">
+                No chores today!
+            </div>
+
+            <template x-for="chore in chores" :key="chore.id">
+                <button class="chore-item" :class="{ 'chore-done': chore.completed }"
+                        @click="toggleChore(chore)">
+                    <span class="chore-check" :class="{ 'checked': chore.completed }">
+                        <span x-show="!chore.completed">&#9711;</span>
+                        <span x-show="chore.completed">&#10003;</span>
+                    </span>
+                    <span class="chore-text" x-text="chore.description"
+                          :class="{ 'chore-strikethrough': chore.completed }"></span>
+                </button>
+            </template>
+
+            <!-- Progress bar -->
+            <div class="chore-progress-bar" x-show="choresTotal > 0">
+                <div class="chore-progress-fill"
+                     :style="'width:' + (choresTotal > 0 ? Math.round(choresDone/choresTotal*100) : 0) + '%'">
+                </div>
+            </div>
+        </section>
+
+        <!-- Calendar Events -->
+        <section class="calendar-section">
+            <div class="section-header">
+                <h2>Events</h2>
+                <button class="add-event-btn" @click="showEventForm = !showEventForm">
+                    <span x-text="showEventForm ? 'Cancel' : '+ Add'"></span>
+                </button>
+            </div>
+
+            <!-- Add event form -->
+            <div x-show="showEventForm" x-cloak class="event-form">
+                <input type="text" x-model="newEvent.title" placeholder="Event title"
+                       class="form-input" @keydown.enter="createEvent()">
+                <div class="event-form-row">
+                    <input type="date" x-model="newEvent.date" class="form-input">
+                    <input type="time" x-model="newEvent.time" class="form-input"
+                           placeholder="Time (optional)">
+                </div>
+                <input type="text" x-model="newEvent.description" placeholder="Description (optional)"
+                       class="form-input">
+                <button class="btn-primary" @click="createEvent()">Add Event</button>
+            </div>
+
+            <!-- Google Calendar events -->
+            <template x-for="(event, i) in googleEvents" :key="'g'+i">
+                <div class="event-item google-event">
+                    <div class="event-color-pill" x-show="event.color_hex"
+                         :style="'background:' + (event.color_hex || '#5484ed')"></div>
+                    <div class="event-time" x-text="formatTime(event.start_time)"></div>
+                    <div class="event-details">
+                        <div class="event-title" x-text="event.title"></div>
+                        <div class="event-desc" x-show="event.description" x-text="event.description"></div>
+                    </div>
+                    <span class="event-source">Google</span>
+                </div>
+            </template>
+
+            <!-- Local events -->
+            <template x-for="event in localEvents" :key="'l'+event.id">
+                <div class="event-item local-event">
+                    <div class="event-time" x-text="event.event_time || 'All day'"></div>
+                    <div class="event-details">
+                        <div class="event-title" x-text="event.title"></div>
+                        <div class="event-desc" x-show="event.description" x-text="event.description"></div>
+                    </div>
+                    <button class="event-delete" @click="deleteEvent(event.id)"
+                            title="Delete event">&times;</button>
+                </div>
+            </template>
+
+            <div x-show="googleEvents.length === 0 && localEvents.length === 0 && !showEventForm"
+                 class="empty-state">
+                No events today
+            </div>
+        </section>
+    </div>
+
+    <!-- Lifestyle Goals Section -->
+    <section class="lifestyle-section" x-show="lifestyleGoals.length > 0 || lifestyleLoaded" x-cloak>
+        <div class="lifestyle-section-header">
+            <div class="lifestyle-header-left">
+                <span class="lifestyle-header-icon">&#127807;</span>
+                <h2 class="lifestyle-header-title">Lifestyle Goals</h2>
+            </div>
+            <span class="lifestyle-week-badge" x-show="lifestyleGoals.length > 0"
+                  x-text="lifestyleOnTrack + '/' + lifestyleGoals.length + ' on track'"></span>
+        </div>
+
+        <div x-show="lifestyleGoals.length === 0 && lifestyleLoaded" class="lifestyle-empty">
+            No goals yet — add some in Profile! &#127919;
+        </div>
+
+        <div class="lifestyle-goals-grid">
+            <template x-for="goal in lifestyleGoals" :key="goal.id">
+                <div class="lifestyle-goal-card" :class="{'goal-complete': goal.on_track, 'goal-logged': goal.today_logged}">
+                    <!-- Checkmark overlay when goal is on track for the week -->
+                    <div class="goal-complete-badge" x-show="goal.on_track">&#10003;</div>
+
+                    <!-- Goal name -->
+                    <div class="goal-card-name" x-text="goal.name"></div>
+
+                    <!-- Tally row -->
+                    <div class="goal-tally-row">
+                        <div class="goal-tally-block">
+                            <div class="goal-tally-num" x-text="goal.this_week_count"></div>
+                            <div class="goal-tally-label">This week</div>
+                        </div>
+                        <div class="goal-tally-divider">/</div>
+                        <div class="goal-tally-block">
+                            <div class="goal-tally-num goal-tally-target" x-text="goal.weekly_target"></div>
+                            <div class="goal-tally-label">Goal</div>
+                        </div>
+                    </div>
+
+                    <!-- Progress dots -->
+                    <div class="goal-dots-row">
+                        <template x-for="i in goal.weekly_target" :key="i">
+                            <div class="goal-dot" :class="{'goal-dot-filled': i <= goal.this_week_count}"></div>
+                        </template>
+                    </div>
+
+                    <!-- Log button / done state -->
+                    <button x-show="!goal.today_logged && !goal.on_track"
+                            class="btn-log-goal"
+                            @click="logGoal(goal.id)">
+                        &#10004; Log Today
+                    </button>
+                    <button x-show="goal.today_logged && !goal.on_track"
+                            class="btn-log-goal btn-log-undo"
+                            @click="unlogGoal(goal.id)">
+                        &#10004; Done today &mdash; Undo?
+                    </button>
+                    <div x-show="goal.on_track" class="goal-on-track-msg">
+                        &#127881; Goal reached!
+                    </div>
+                </div>
+            </template>
+        </div>
+    </section>
+
+    <!-- Pending Rewards Section -->
+    <section class="today-rewards-section" x-show="pendingRewards.length > 0" x-cloak>
+        <div class="today-rewards-header">
+            <span class="today-rewards-icon">&#127873;</span>
+            <h2 class="today-rewards-title">Rewards Waiting!</h2>
+            <span class="today-rewards-count" x-text="pendingRewards.length"></span>
+        </div>
+        <template x-for="reward in pendingRewards" :key="reward.id">
+            <div class="today-reward-card">
+                <div class="today-reward-left">
+                    <div class="today-reward-emoji">&#127775;</div>
+                    <div class="today-reward-info">
+                        <div class="today-reward-name" x-text="reward.privilege_name"></div>
+                        <div class="today-reward-pts" x-text="reward.points_spent + ' pt' + (reward.points_spent !== 1 ? 's' : '')"></div>
+                    </div>
+                </div>
+                <button class="btn-got-reward" @click="gotReward(reward.id)">
+                    I got my reward! &#127881;
+                </button>
+            </div>
+        </template>
+    </section>
+
+    </div><!-- /calendar-wrapper -->
+</div>
+
+<!-- Cheer sound -->
+<audio id="cheer-sound" src="{{ url_for('static', filename='sounds/cheer.wav') }}" preload="auto" playsinline></audio>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('calendarApp', () => ({
+        dayName: '',
+        formattedDate: '',
+        streak: 0,
+        streakBest: 0,
+        chores: [],
+        choresDone: 0,
+        choresTotal: 0,
+        googleEvents: [],
+        localEvents: [],
+        showEventForm: false,
+        newEvent: { title: '', date: '', time: '', description: '' },
+        // Lifestyle
+        lifestyleGoals: [],
+        lifestyleLoaded: false,
+        lifestyleOnTrack: 0,
+        // Pending rewards
+        pendingRewards: [],
+
+        async loadToday() {
+            try {
+                const res = await fetch('/api/calendar/today');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                this.dayName = data.day_name;
+                const d = new Date(data.date + 'T00:00:00');
+                this.formattedDate = d.toLocaleDateString('en-US', {
+                    month: 'long', day: 'numeric', year: 'numeric'
+                });
+
+                this.streak = data.streak_current;
+                this.streakBest = data.streak_best;
+                this.chores = data.chores;
+                this.choresDone = data.progress.done;
+                this.choresTotal = data.progress.total;
+                this.googleEvents = data.google_events;
+                this.localEvents = data.local_events;
+
+                // Default new event date to today
+                this.newEvent.date = data.date;
+            } catch (e) {
+                console.error('Failed to load calendar data:', e);
+            }
+            // Load lifestyle goals and pending rewards
+            this.loadLifestyleGoals();
+            this.loadPendingRewards();
+        },
+
+        async loadLifestyleGoals() {
+            try {
+                const res = await fetch('/api/lifestyle/goals');
+                if (!res.ok) { this.lifestyleLoaded = true; return; }
+                const data = await res.json();
+                this.lifestyleGoals = data.goals || [];
+                this.lifestyleOnTrack = this.lifestyleGoals.filter(g => g.on_track).length;
+                this.lifestyleLoaded = true;
+            } catch (e) {
+                this.lifestyleLoaded = true;
+            }
+        },
+
+        async loadPendingRewards() {
+            try {
+                const res = await fetch('/api/lifestyle/redemptions');
+                if (!res.ok) return;
+                const data = await res.json();
+                this.pendingRewards = (data.redemptions || []).filter(r => r.status === 'pending');
+            } catch (e) {}
+        },
+
+        async gotReward(rewardId) {
+            try {
+                const res = await fetch(`/api/lifestyle/redemptions/${rewardId}/complete`, { method: 'POST' });
+                if (!res.ok) return;
+                this.pendingRewards = this.pendingRewards.filter(r => r.id !== rewardId);
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+                }
+            } catch (e) {}
+        },
+
+        async logGoal(goalId) {
+            try {
+                const res = await fetch(`/api/lifestyle/goals/${goalId}/log`, { method: 'POST' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const goal = this.lifestyleGoals.find(g => g.id === goalId);
+                if (goal) {
+                    goal.today_logged = data.today_logged;
+                    goal.this_week_count = data.this_week_count;
+                    goal.on_track = data.on_track;
+                    this.lifestyleOnTrack = this.lifestyleGoals.filter(g => g.on_track).length;
+                }
+            } catch (e) {
+                console.error('Failed to log goal:', e);
+            }
+        },
+
+        async unlogGoal(goalId) {
+            try {
+                const res = await fetch(`/api/lifestyle/goals/${goalId}/log`, { method: 'DELETE' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const goal = this.lifestyleGoals.find(g => g.id === goalId);
+                if (goal) {
+                    goal.today_logged = data.today_logged;
+                    goal.this_week_count = data.this_week_count;
+                    goal.on_track = data.on_track;
+                    this.lifestyleOnTrack = this.lifestyleGoals.filter(g => g.on_track).length;
+                }
+            } catch (e) {
+                console.error('Failed to unlog goal:', e);
+            }
+        },
+
+        async toggleChore(chore) {
+            const newState = !chore.completed;
+            try {
+                const res = await fetch(`/chores/${chore.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed: newState })
+                });
+                if (!res.ok) return;
+
+                chore.completed = newState;
+                this.choresDone = this.chores.filter(c => c.completed).length;
+
+                if (newState && this.choresDone === this.choresTotal) {
+                    // Cheer sound + confetti only when ALL chores are done
+                    const sound = document.getElementById('cheer-sound');
+                    if (sound) { sound.currentTime = 0; sound.play().catch(() => {}); }
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to toggle chore:', e);
+            }
+        },
+
+        async createEvent() {
+            const title = this.newEvent.title.trim();
+            if (!title) return;
+
+            try {
+                const body = {
+                    title: title,
+                    event_date: this.newEvent.date,
+                    event_time: this.newEvent.time || undefined,
+                    description: this.newEvent.description.trim() || undefined,
+                };
+                const res = await fetch('/calendar/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) return;
+
+                const event = await res.json();
+                this.localEvents.push(event);
+                this.newEvent = { title: '', date: this.newEvent.date, time: '', description: '' };
+                this.showEventForm = false;
+            } catch (e) {
+                console.error('Failed to create event:', e);
+            }
+        },
+
+        async deleteEvent(eventId) {
+            try {
+                const res = await fetch(`/calendar/events/${eventId}`, { method: 'DELETE' });
+                if (!res.ok) return;
+                this.localEvents = this.localEvents.filter(e => e.id !== eventId);
+            } catch (e) {
+                console.error('Failed to delete event:', e);
+            }
+        },
+
+        formatTime(timeStr) {
+            if (!timeStr) return 'All day';
+            try {
+                const d = new Date(timeStr);
+                if (isNaN(d)) return timeStr;
+                return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            } catch {
+                return timeStr;
+            }
+        }
+    }));
+});
+</script>
+{% endblock %}

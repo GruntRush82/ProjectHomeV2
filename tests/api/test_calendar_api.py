@@ -6,13 +6,19 @@ import pytest
 
 
 class TestCalendarPage:
-    """GET /calendar renders the dashboard."""
+    """GET /today and GET /calendar render their dashboards."""
 
-    def test_calendar_page_returns_200(self, logged_in_client, sample_users):
+    def test_today_page_returns_200(self, logged_in_client, sample_users):
+        client = logged_in_client(user_id=sample_users["kid1"].id)
+        resp = client.get("/today")
+        assert resp.status_code == 200
+        assert b"calendarApp" in resp.data
+
+    def test_weekly_calendar_page_returns_200(self, logged_in_client, sample_users):
         client = logged_in_client(user_id=sample_users["kid1"].id)
         resp = client.get("/calendar")
         assert resp.status_code == 200
-        assert b"calendarApp" in resp.data
+        assert b"calendarWeekApp" in resp.data
 
 
 class TestTodayAPI:
